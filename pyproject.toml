@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "nb-clean>=4.0.1",
     "neo4j>=5.28.1",
     "pandas>=2.2.3",
     "pymongo>=4.13.0",
