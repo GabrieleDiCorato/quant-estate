@@ -48,8 +48,15 @@ You can setup git to automatically use a cleaned-up version of your notebook whe
 
 ### 📓 Running Jupyter Notebooks
 
-Please carefully read [](https://docs.astral.sh/uv/guides/integration/jupyter/)
+Read the [documentation](https://docs.astral.sh/uv/guides/integration/jupyter/).
 
+If you are using the command line, just run:
+
+```bash
+uv run --with jupyter jupyter lab
+```
+
+If you are using Visual Studio Code, carefully read [Using Jupyter From VS Code](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code).
 
 ### 📓 Building the project
 
