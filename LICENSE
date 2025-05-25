@@ -1,21 +1,42 @@
-MIT License
+Business Source License 1.1
 
-Copyright (c) 2025 GDC
+Licensor: Gabriele Di Corato, Andrea Pivotto, Massimiliano Del Forno, Alessandro Valente
+Licensed Work: TMP PROJECT
+License Version: 1.1
+Effective Date: 2025-05-24
+Change Date: 2028-05-24
+Change License: Apache License, Version 2.0
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Terms:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The Licensed Work is made available under the terms of the Business Source License 1.1 (BSL 1.1). The license permits non-commercial use of the Licensed Work. Commercial use requires the purchase of a commercial license from the Licensor.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Definitions:
+
+-"Licensor" means the individual or legal entity offering the Licensed Work under the terms of this License.
+-"Licensed Work" means the software and associated documentation files made available under this License.
+-"Change Date" means the date three years after the Effective Date, on which the License will automatically convert to the Change License.
+-"Change License" means the Apache License, Version 2.0.
+-"Non-Commercial Use" means any use of the Licensed Work that is not intended to generate revenue or is not performed in the course of business operations.
+
+Permissions:
+
+- You may use, copy, modify, and redistribute the Licensed Work for **non-commercial purposes**.
+- You may create derivative works, provided they are also used non-commercially.
+- You may not use the Licensed Work, or any derivative works, for commercial purposes without a commercial license from the Licensor.
+
+Conditions:
+
+- You must retain the original license notice in all copies or substantial portions of the Licensed Work.
+- You must not remove or obscure this license when distributing the Licensed Work.
+
+Limitations:
+
+- THE LICENSED WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+- The Licensor is not liable for any damages arising from the use of the Licensed Work.
+
+For commercial licensing, please contact the Repository owner.
+
+---
+
+This license will convert to the Apache License 2.0 on the Change Date.
