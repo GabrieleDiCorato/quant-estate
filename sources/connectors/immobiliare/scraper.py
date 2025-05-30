@@ -4,7 +4,7 @@ import pandas as pd
 
 from .connector import ImmobiliareConnector
 from .models import RealEstate
-from .storage import DataStorage
+from .storage import DataStorage, FileStorage
 from .config import config
 from .exceptions import DataExtractionError
 
@@ -14,23 +14,23 @@ class ImmobiliareScraper:
     def __init__(
         self,
         url: str,
+        storage: Optional[DataStorage] = None,
         get_data_of_following_pages: bool = False,
-        max_pages: Optional[int] = None,
-        storage_path: Optional[str] = None
+        max_pages: Optional[int] = None
     ) -> None:
         """Initialize the scraper with the target URL and options.
         
         Args:
             url: The URL to scrape
+            storage: Optional storage instance (defaults to FileStorage if None)
             get_data_of_following_pages: Whether to scrape following pages
             max_pages: Maximum number of pages to scrape (None for no limit)
-            storage_path: Optional custom storage path
         """
         self.connector = ImmobiliareConnector()
         self.base_url = url
         self.get_data_of_following_pages = get_data_of_following_pages
         self.max_pages = max_pages
-        self.storage = DataStorage(storage_path)
+        self.storage = storage if storage is not None else FileStorage()
         self.real_estates: List[RealEstate] = []
         self.failed_pages: List[int] = []
         
@@ -62,7 +62,7 @@ class ImmobiliareScraper:
                 self.real_estates.extend(page_estates)
                 
                 # Append the page data to storage
-                if not self._append_page_data(json_data):
+                if not self.storage.append_data(json_data):
                     self.failed_pages.append(current_page)
                     print(f"Warning: Failed to append data for page {current_page}")
                 
@@ -102,23 +102,6 @@ class ImmobiliareScraper:
                 continue
         
         return real_estates
-    
-    def _append_page_data(self, data: List[dict]) -> bool:
-        """Append data for a single page to storage.
-        
-        Args:
-            data: The JSON data to append
-            
-        Returns:
-            bool: True if append was successful, False otherwise
-        """
-        # Try to append as JSON first
-        json_success = self.storage.append_json(data)
-        
-        # Try to append as CSV as well
-        csv_success = self.storage.append_csv(data)
-        
-        return json_success or csv_success
     
     def get_failed_pages(self) -> List[int]:
         """Get the list of pages that failed to save."""
