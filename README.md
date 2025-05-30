@@ -1,6 +1,6 @@
-# 🏡 TMP NAME - HOUSING MARKET ANALYSIS
+# 🏡 QUANT ESTATE - HOUSING MARKET ANALYSIS
 
-Your AI real estate agent.
+Your quantitative real estate agent.
 
 ---
 
