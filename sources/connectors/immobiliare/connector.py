@@ -15,11 +15,14 @@ class ImmobiliareConnector:
     def __init__(self, headers: Dict[str, str] = None):
         """Initialize the connector with optional custom headers."""
         self.headers = headers or config.headers
+        self.base_url = config.base_url
+        self.min_delay = config.request_settings["min_delay"]
+        self.max_delay = config.request_settings["max_delay"]
     
     def validate_url(self, url: str) -> None:
         """Validate that the URL is appropriate for immobiliare.it."""
-        if not config.base_url in url:
-            raise InvalidURLError(f"Given URL must include '{config.base_url}'")
+        if not self.base_url in url:
+            raise InvalidURLError(f"Given URL must include '{self.base_url}'")
         
         if "mapCenter" in url:
             raise InvalidURLError("Given URL must not include 'mapCenter' as it uses another API to retrieve data")
@@ -34,10 +37,7 @@ class ImmobiliareConnector:
         try:
             print(f"Requesting URL: {url}")
             response = requests.get(url, headers=self.headers)
-            time.sleep(random.uniform(
-                config.request_settings["min_delay"],
-                config.request_settings["max_delay"]
-            ))
+            time.sleep(random.uniform(self.min_delay, self.max_delay))
             
             if response.status_code != 200:
                 raise RequestError(f"Request failed with status code {response.status_code}")

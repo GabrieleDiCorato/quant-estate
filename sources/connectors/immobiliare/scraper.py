@@ -32,6 +32,7 @@ class ImmobiliareScraper:
         self.max_pages = max_pages
         self.storage = DataStorage(storage_path)
         self.real_estates: List[RealEstate] = []
+        self.failed_pages: List[int] = []
         
         # Start scraping
         self.gather_real_estate_data()
@@ -46,24 +47,39 @@ class ImmobiliareScraper:
         current_page = 1
         
         while True:
-            print(f"Getting real estate data of {current_url}")
-            response = self.connector.get_page(current_url)
-            json_data = self.connector.extract_json_data(response)
-            
-            if not json_data:
-                break
-            
-            self.real_estates.extend(self._process_json_data(json_data))
-            
-            if not self.get_data_of_following_pages:
-                break
+            print(f"\nProcessing page {current_page}")
+            try:
+                # Get and process the page
+                response = self.connector.get_page(current_url)
+                json_data = self.connector.extract_json_data(response)
                 
-            if self.max_pages and current_page >= self.max_pages:
-                print(f"Reached maximum page limit of {self.max_pages}")
+                if not json_data:
+                    print(f"No data found on page {current_page}")
+                    break
+                
+                # Process the data
+                page_estates = self._process_json_data(json_data)
+                self.real_estates.extend(page_estates)
+                
+                # Append the page data to storage
+                if not self._append_page_data(json_data):
+                    self.failed_pages.append(current_page)
+                    print(f"Warning: Failed to append data for page {current_page}")
+                
+                if not self.get_data_of_following_pages:
+                    break
+                    
+                if self.max_pages and current_page >= self.max_pages:
+                    print(f"Reached maximum page limit of {self.max_pages}")
+                    break
+                
+                current_page += 1
+                current_url = self.connector.get_next_page_url(self.base_url, current_page)
+                
+            except Exception as e:
+                print(f"Error processing page {current_page}: {e}")
+                self.failed_pages.append(current_page)
                 break
-            
-            current_page += 1
-            current_url = self.connector.get_next_page_url(self.base_url, current_page)
     
     def _process_json_data(self, json_data: List[dict]) -> List[RealEstate]:
         """Process JSON data into RealEstate objects."""
@@ -87,10 +103,23 @@ class ImmobiliareScraper:
         
         return real_estates
     
-    def save_data_json(self, filename: Optional[str] = None) -> None:
-        """Save the scraped data to a JSON file."""
-        self.storage.save_json(self.real_estates, filename)
+    def _append_page_data(self, data: List[dict]) -> bool:
+        """Append data for a single page to storage.
+        
+        Args:
+            data: The JSON data to append
+            
+        Returns:
+            bool: True if append was successful, False otherwise
+        """
+        # Try to append as JSON first
+        json_success = self.storage.append_json(data)
+        
+        # Try to append as CSV as well
+        csv_success = self.storage.append_csv(data)
+        
+        return json_success or csv_success
     
-    def save_data_csv(self, filename: Optional[str] = None) -> None:
-        """Save the scraped data to a CSV file."""
-        self.storage.save_csv(self.real_estates, filename) 
+    def get_failed_pages(self) -> List[int]:
+        """Get the list of pages that failed to save."""
+        return self.failed_pages 
