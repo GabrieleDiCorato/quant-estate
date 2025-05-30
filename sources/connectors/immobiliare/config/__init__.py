@@ -17,7 +17,11 @@ def load_yaml_file(file_path: Path) -> Dict[str, Any]:
     """Load a YAML file and return its contents as a dictionary."""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+            # Ensure save_json is set in storage_settings
+            if 'storage_settings' in config:
+                config['storage_settings']['save_json'] = config['storage_settings'].get('save_json', False)
+            return config
     except Exception as e:
         raise ConfigurationError(f"Failed to load YAML file {file_path}: {e}")
 
@@ -32,6 +36,25 @@ def merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, A
             result[key] = value
     
     return result
+
+# Default configuration
+DEFAULT_CONFIG = {
+    'base_url': 'https://www.immobiliare.it',
+    'headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    },
+    'request_settings': {
+        'min_delay': 1.0,
+        'max_delay': 3.0
+    },
+    'storage_settings': {
+        'base_path': 'data',
+        'date_format': '%Y-%m-%d',
+        'default_csv_filename': 'immobiliare.csv',
+        'default_json_filename': 'immobiliare.json',
+        'save_json': False  # Disable JSON saving by default
+    }
+}
 
 class Config:
     """Configuration management class."""
@@ -74,6 +97,11 @@ class Config:
     def storage_settings(self) -> Dict[str, Any]:
         """Get the storage settings."""
         return self._config['storage_settings']
+    
+    @property
+    def save_json(self) -> bool:
+        """Get whether to save data in JSON format."""
+        return self.storage_settings.get('save_json', False)
     
     def get_storage_path(self) -> str:
         """Get the storage path for the current date."""

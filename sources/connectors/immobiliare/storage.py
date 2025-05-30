@@ -33,7 +33,11 @@ class FileStorage(DataStorage):
     """File-based storage implementation using JSON and CSV files."""
     
     def __init__(self, base_path: str = None):
-        """Initialize the storage with an optional custom base path."""
+        """Initialize the storage with an optional custom base path.
+        
+        Args:
+            base_path: Optional custom base path for storage
+        """
         if base_path:
             self.base_path = Path(base_path)
         else:
@@ -46,12 +50,14 @@ class FileStorage(DataStorage):
             
             self.base_path = project_root / "data" / folder_name
         
+        self.save_json = config.save_json
         self._ensure_directory_exists()
-        print(f"Initialized storage at: {self.base_path}")
+        print(f"Storage initialized at: {self.base_path}")
         
         # Initialize file paths
-        self.json_file = self.base_path / config.storage_settings.get("default_json_filename", "immobiliare.json")
         self.csv_file = self.base_path / config.storage_settings.get("default_csv_filename", "immobiliare.csv")
+        if self.save_json:
+            self.json_file = self.base_path / config.storage_settings.get("default_json_filename", "immobiliare.json")
         
         # Initialize files if they don't exist
         self._initialize_files()
@@ -66,8 +72,8 @@ class FileStorage(DataStorage):
     
     def _initialize_files(self) -> None:
         """Initialize JSON and CSV files if they don't exist."""
-        # Initialize JSON file
-        if not self.json_file.exists():
+        # Initialize JSON file if enabled
+        if self.save_json and not self.json_file.exists():
             with open(self.json_file, "w", encoding="utf-8") as f:
                 json.dump([], f)
             print(f"Initialized JSON file: {self.json_file}")
@@ -92,7 +98,10 @@ class FileStorage(DataStorage):
             print("No data to append")
             return False
             
-        json_success = self._append_json(data)
+        json_success = True
+        if self.save_json:
+            json_success = self._append_json(data)
+        
         csv_success = self._append_csv(data)
         
         return json_success or csv_success
@@ -147,13 +156,13 @@ class FileStorage(DataStorage):
             return False
     
     def load_data(self) -> List[RealEstate]:
-        """Load all real estate data from the JSON file."""
+        """Load all real estate data from the CSV file."""
         try:
-            with open(self.json_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return [RealEstate.from_dict(item) for item in data]
-        except (IOError, json.JSONDecodeError) as e:
-            raise StorageError(f"Failed to load JSON data: {e}")
+            with open(self.csv_file, "r", newline="", encoding="utf-8") as csvfile:
+                reader = csv.DictReader(csvfile)
+                return [RealEstate.from_dict(row) for row in reader]
+        except IOError as e:
+            raise StorageError(f"Failed to load CSV data: {e}")
 
 class MongoDBStorage(DataStorage):
     """MongoDB-based storage implementation."""
