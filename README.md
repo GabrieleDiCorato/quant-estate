@@ -58,15 +58,23 @@ uv run --with jupyter jupyter lab
 
 If you are using Visual Studio Code, carefully read [Using Jupyter From VS Code](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code).
 
-### 📓 Building the project
+### 📦 Building the Project
 
-To create a distribution archive, just run:
+To build the project and create a distribution package:
 
 ```bash
 uv build
 ```
 
-This creates an archive in the `dist` subdirectory.
+This will create a distribution archive in the `dist` directory that can be installed using pip or uv:
+
+```bash
+# Using pip
+pip install dist/quant_estate-0.1.0.tar.gz
+
+# Using uv
+uv pip install dist/quant_estate-0.1.0.tar.gz
+```
 
 ---
 
