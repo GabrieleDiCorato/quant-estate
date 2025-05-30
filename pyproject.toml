@@ -1,7 +1,7 @@
 [project]
 name = "quant-estate"
 version = "0.1.0"
-description = "Add your description here"
+description = "Real estate data collection and analysis toolkit"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,9 +10,23 @@ dependencies = [
     "pandas>=2.2.3",
     "pymongo>=4.13.0",
     "yfinance>=0.2.61",
+    "beautifulsoup4>=4.12.0",
+    "requests>=2.31.0",
+    "pyyaml>=6.0.1",
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "nb-clean>=4.0.1",
+    "jupyter>=1.0.0",
+    "ipykernel>=6.0.0",
 ]
+
+[tool.setuptools.packages.find]
+#where = ["."]  # list of folders that contain the packages (["."] by default)
+#include = ["src.*"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["notebooks"]  # exclude packages matching these glob patterns (empty by default)
+#namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[tool.hatch.build]
+src-layout = true
