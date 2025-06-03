@@ -9,12 +9,15 @@ import requests
 from bs4 import BeautifulSoup
 
 from ..base import BaseConnector, BaseScraper
-from ...config import ConfigManager
-from .exceptions import InvalidURLError, DataExtractionError
+from ..exceptions import (
+    ScrapingError, StorageError, ValidationError, ConfigurationError,
+    InvalidURLError, DataExtractionError, RequestError
+)
+from ...configs import ConfigManager
 from .models import RealEstate
 from .scraper import ImmobiliareScraper
 from .storage import FileStorage, MongoDBStorage
-from ...utils.logging import get_module_logger, get_class_logger, setup_logging
+from ...logging.logging import get_module_logger, get_class_logger, setup_logging
 
 # Set up logging
 logger = get_module_logger()
@@ -33,15 +36,15 @@ class ImmobiliareScraper(BaseScraper):
         self.logger.debug("Validating URL: %s", url)
         if not self.base_url in url:
             self.logger.error("Invalid URL: missing base URL %s", self.base_url)
-            raise InvalidURLError(f"Given URL must include '{self.base_url}'")
+            raise ValidationError(f"Given URL must include '{self.base_url}'")
         
         if "mapCenter" in url:
             self.logger.error("Invalid URL: contains 'mapCenter' which uses a different API")
-            raise InvalidURLError("Given URL must not include 'mapCenter' as it uses another API to retrieve data")
+            raise ValidationError("Given URL must not include 'mapCenter' as it uses another API to retrieve data")
         
         if "search-list" in url:
             self.logger.error("Invalid URL: contains 'search-list' which uses a different API")
-            raise InvalidURLError("Given URL must not include 'search-list' as it uses another API to retrieve data")
+            raise ValidationError("Given URL must not include 'search-list' as it uses another API to retrieve data")
         self.logger.debug("URL validation successful")
     
     def extract_data(self, response: requests.Response) -> List[Dict[str, Any]]:
@@ -53,7 +56,7 @@ class ImmobiliareScraper(BaseScraper):
             
             if not script_tag:
                 self.logger.error("Failed to find __NEXT_DATA__ script tag in response")
-                raise DataExtractionError("Could not find __NEXT_DATA__ script tag")
+                raise ScrapingError("Could not find __NEXT_DATA__ script tag")
                 
             json_data = script_tag.text
             data = json.loads(json_data)
@@ -63,25 +66,29 @@ class ImmobiliareScraper(BaseScraper):
             
         except (json.JSONDecodeError, KeyError, AttributeError) as e:
             self.logger.error("Failed to extract JSON data: %s", str(e), exc_info=True)
-            raise DataExtractionError(f"Failed to extract JSON data: {e}")
+            raise ScrapingError(f"Failed to extract JSON data: {e}")
     
     def get_next_page_url(self, current_url: str, page_number: int) -> str:
         """Generate the URL for the next page of results."""
         self.logger.debug("Generating URL for page %d", page_number)
-        parsed_url = urlparse(current_url)
-        query_params = parse_qs(parsed_url.query)
-        query_params['pag'] = [str(page_number)]
-        
-        next_url = urlunparse((
-            parsed_url.scheme,
-            parsed_url.netloc,
-            parsed_url.path,
-            parsed_url.params,
-            urlencode(query_params, doseq=True),
-            parsed_url.fragment
-        ))
-        self.logger.debug("Generated next page URL: %s", next_url)
-        return next_url
+        try:
+            parsed_url = urlparse(current_url)
+            query_params = parse_qs(parsed_url.query)
+            query_params['pag'] = [str(page_number)]
+            
+            next_url = urlunparse((
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                parsed_url.params,
+                urlencode(query_params, doseq=True),
+                parsed_url.fragment
+            ))
+            self.logger.debug("Generated next page URL: %s", next_url)
+            return next_url
+        except Exception as e:
+            self.logger.error("Failed to generate next page URL: %s", str(e), exc_info=True)
+            raise ValidationError(f"Failed to generate next page URL: {e}")
 
 class ImmobiliareConnector(BaseConnector):
     """Connector implementation for immobiliare.it."""
@@ -90,42 +97,50 @@ class ImmobiliareConnector(BaseConnector):
         """Initialize the connector with configuration."""
         logger.info("Initializing ImmobiliareConnector")
         
-        # Set up project-wide logging
-        setup_logging(config_manager.get_logging_config())
-        
-        # Initialize components
-        scraper = ImmobiliareScraper(config_manager.get_connector_config('immobiliare'))
-        storage = self._create_storage(config_manager.get_storage_config('immobiliare'))
-        super().__init__(scraper, storage)
-        logger.info("ImmobiliareConnector initialized successfully with %s storage", 
-                   storage.__class__.__name__)
+        try:
+            # Set up project-wide logging
+            setup_logging(config_manager.get_logging_config())
+            
+            # Initialize components
+            scraper = ImmobiliareScraper(config_manager.get_connector_config('immobiliare'))
+            storage = self._create_storage(config_manager.get_storage_config('immobiliare'))
+            super().__init__(scraper, storage)
+            logger.info("ImmobiliareConnector initialized successfully with %s storage", 
+                       storage.__class__.__name__)
+        except Exception as e:
+            logger.error("Failed to initialize ImmobiliareConnector: %s", str(e), exc_info=True)
+            raise ConfigurationError(f"Failed to initialize connector: {e}")
     
     def _create_storage(self, storage_config: Dict[str, Any]):
         """Create storage instance based on configuration."""
         logger.debug("Creating storage with config: %s", storage_config)
-        storage_type = storage_config['type']
-        settings = storage_config['settings']
-        
-        if storage_type == 'file':
-            storage = FileStorage(
-                base_path=settings['base_path'],
-                save_json=settings['save_json']
-            )
-            logger.info("Created FileStorage at %s", storage.base_path)
-            return storage
-        elif storage_type == 'mongodb':
-            storage = MongoDBStorage(
-                connection_string=settings['connection_string'],
-                database=settings['database'],
-                collection=settings['collection']
-            )
-            logger.info("Created MongoDBStorage for %s.%s", 
-                       storage.config['database'], 
-                       storage.config['collection'])
-            return storage
-        else:
-            logger.error("Unsupported storage type: %s", storage_type)
-            raise ValueError(f"Unsupported storage type: {storage_type}")
+        try:
+            storage_type = storage_config['type']
+            settings = storage_config['settings']
+            
+            if storage_type == 'file':
+                storage = FileStorage(
+                    base_path=settings['base_path'],
+                    save_json=settings['save_json']
+                )
+                logger.info("Created FileStorage at %s", storage.base_path)
+                return storage
+            elif storage_type == 'mongodb':
+                storage = MongoDBStorage(
+                    connection_string=settings['connection_string'],
+                    database=settings['database'],
+                    collection=settings['collection']
+                )
+                logger.info("Created MongoDBStorage for %s.%s", 
+                           storage.config['database'], 
+                           storage.config['collection'])
+                return storage
+            else:
+                raise ConfigurationError(f"Unsupported storage type: {storage_type}")
+        except KeyError as e:
+            raise ConfigurationError(f"Missing required storage configuration key: {e}")
+        except Exception as e:
+            raise ConfigurationError(f"Failed to create storage: {e}")
     
     def scrape_and_store(self, start_url: str, max_pages: int = None) -> bool:
         """Scrape data from the given URL and store it."""
@@ -136,6 +151,9 @@ class ImmobiliareConnector(BaseConnector):
             result = super().scrape_and_store(start_url, max_pages)
             logger.info("Scraping completed successfully")
             return result
-        except Exception as e:
+        except (ScrapingError, StorageError, ValidationError) as e:
             logger.error("Error during scraping: %s", str(e), exc_info=True)
-            raise 
+            raise
+        except Exception as e:
+            logger.error("Unexpected error during scraping: %s", str(e), exc_info=True)
+            raise ScrapingError(f"Unexpected error: {e}") 

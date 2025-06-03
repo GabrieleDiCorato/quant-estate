@@ -6,7 +6,7 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 
-from ..utils.logging import get_module_logger
+from ..logging.logging import get_module_logger
 
 logger = get_module_logger()
 
@@ -21,7 +21,7 @@ class ConfigManager:
                        If None, uses the default config directory.
         """
         if config_dir is None:
-            config_dir = Path(__file__).parent
+            config_dir = Path(__file__).parent.parent / 'configs'
         self.config_dir = Path(config_dir)
         self._configs: Dict[str, Dict[str, Any]] = {}
         logger.info(f"Initialized ConfigManager with config directory: {self.config_dir}")
@@ -48,7 +48,7 @@ class ConfigManager:
         
         # Determine config path
         if connector:
-            config_path = self.config_dir.parent / 'connectors' / connector / 'config' / f"{name}.yaml"
+            config_path = self.config_dir / 'connectors' / connector / f"{name}.yaml"
         else:
             config_path = self.config_dir / f"{name}.yaml"
             
