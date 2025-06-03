@@ -10,12 +10,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import yaml
+import fcntl
+import threading
+from contextlib import contextmanager
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure, ConfigurationError
+from pymongo.write_concern import WriteConcern
 
 from .models import RealEstate
-from .exceptions import StorageError
-from ...utils.logging import get_module_logger, get_class_logger
+from ..exceptions import StorageError
+from ...logging.logging import get_module_logger, get_class_logger
 
 # Set up logging
 logger = get_module_logger()
@@ -24,13 +28,18 @@ class DataStorage(ABC):
     """Abstract base class for data storage implementations."""
     
     @abstractmethod
-    def append_data(self, data: List[Dict[str, Any]]) -> bool:
-        """Append data to storage."""
-        pass
-    
-    @abstractmethod
-    def load_data(self) -> List[RealEstate]:
-        """Load all real estate data from storage."""
+    def append_data(self, data: List[RealEstate]) -> bool:
+        """Append data to storage.
+        
+        Args:
+            data: List of RealEstate objects to append
+            
+        Returns:
+            bool: True if data was successfully appended
+            
+        Raises:
+            StorageError: If there's an error storing the data
+        """
         pass
 
 class FileStorage(DataStorage):
@@ -41,12 +50,33 @@ class FileStorage(DataStorage):
         self.base_path = Path(base_path)
         self.save_json = save_json
         self.logger = get_class_logger(self.__class__)
+        self._lock = threading.Lock()
         self.logger.info("Initialized FileStorage at %s (JSON saving: %s)", 
                         self.base_path, 
                         "enabled" if save_json else "disabled")
     
-    def store(self, data: List[RealEstate]) -> bool:
-        """Store data in JSON and CSV formats."""
+    @contextmanager
+    def _file_lock(self, file_path: Path):
+        """Acquire a file lock for safe concurrent access."""
+        with open(file_path, 'a+') as f:
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                yield f
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+    
+    def append_data(self, data: List[RealEstate]) -> bool:
+        """Append data to storage.
+        
+        Args:
+            data: List of RealEstate objects to append
+            
+        Returns:
+            bool: True if data was successfully appended
+            
+        Raises:
+            StorageError: If there's an error storing the data
+        """
         if not data:
             self.logger.warning("No data to store")
             return False
@@ -62,38 +92,28 @@ class FileStorage(DataStorage):
             json_path = self.base_path / f"real_estate_{timestamp}.json"
             self.logger.debug("Saving JSON to %s", json_path)
             try:
-                with open(json_path, 'w', encoding='utf-8') as f:
-                    json.dump([item.dict() for item in data], f, ensure_ascii=False, indent=2)
+                with self._file_lock(json_path):
+                    with open(json_path, 'w', encoding='utf-8') as f:
+                        json.dump([item.dict() for item in data], f, ensure_ascii=False, indent=2)
                 self.logger.info("Successfully saved %d records to JSON file", len(data))
             except Exception as e:
                 self.logger.error("Failed to save JSON: %s", str(e), exc_info=True)
-                return False
+                raise StorageError(f"Failed to save JSON: {e}")
         
         # Store as CSV
         csv_path = self.base_path / f"real_estate_{timestamp}.csv"
         self.logger.debug("Saving CSV to %s", csv_path)
         try:
-            with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=RealEstate.__fields__)
-                writer.writeheader()
-                writer.writerows([item.dict() for item in data])
+            with self._file_lock(csv_path):
+                with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.DictWriter(f, fieldnames=RealEstate.__fields__)
+                    writer.writeheader()
+                    writer.writerows([item.dict() for item in data])
             self.logger.info("Successfully saved %d records to CSV file", len(data))
             return True
         except Exception as e:
             self.logger.error("Failed to save CSV: %s", str(e), exc_info=True)
-            return False
-    
-    def load_data(self) -> List[RealEstate]:
-        """Load all real estate data from the CSV file."""
-        try:
-            with open(self.csv_file, "r", newline="", encoding="utf-8") as csvfile:
-                reader = csv.DictReader(csvfile)
-                data = [RealEstate.from_dict(row) for row in reader]
-                self.logger.info("Successfully loaded %d records from CSV file", len(data))
-                return data
-        except IOError as e:
-            self.logger.error("Failed to load CSV data: %s", str(e), exc_info=True)
-            raise StorageError(f"Failed to load CSV data: {e}")
+            raise StorageError(f"Failed to save CSV: {e}")
 
 class MongoDBStorage(DataStorage):
     """MongoDB-based storage implementation."""
@@ -106,32 +126,55 @@ class MongoDBStorage(DataStorage):
             'collection': collection
         }
         self.logger = get_class_logger(self.__class__)
+        self._client = None
+        self._collection = None
         self.logger.info("Initialized MongoDBStorage for %s.%s", database, collection)
     
-    def store(self, data: List[RealEstate]) -> bool:
-        """Store data in MongoDB."""
+    def _get_collection(self):
+        """Get MongoDB collection with proper write concern."""
+        if self._collection is None:
+            if self._client is None:
+                self._client = MongoClient(self.config['connection_string'])
+            db = self._client[self.config['database']]
+            self._collection = db[self.config['collection']].with_options(
+                write_concern=WriteConcern(w=1, journal=True)
+            )
+        return self._collection
+    
+    def append_data(self, data: List[RealEstate]) -> bool:
+        """Append data to storage.
+        
+        Args:
+            data: List of RealEstate objects to append
+            
+        Returns:
+            bool: True if data was successfully appended
+            
+        Raises:
+            StorageError: If there's an error storing the data
+        """
         if not data:
             self.logger.warning("No data to store")
             return False
             
         self.logger.info("Storing %d real estate listings in MongoDB", len(data))
         try:
-            client = MongoClient(self.config['connection_string'])
-            db = client[self.config['database']]
-            collection = db[self.config['collection']]
+            collection = self._get_collection()
             
             # Convert RealEstate objects to dictionaries
             documents = [item.dict() for item in data]
             
-            # Insert documents
+            # Insert documents with write concern
             result = collection.insert_many(documents)
             self.logger.info("Successfully inserted %d documents into MongoDB", len(result.inserted_ids))
             return True
             
         except Exception as e:
             self.logger.error("Failed to store data in MongoDB: %s", str(e), exc_info=True)
-            return False
-        finally:
-            if 'client' in locals():
-                client.close()
-                self.logger.debug("Closed MongoDB connection")
+            raise StorageError(f"Failed to store data in MongoDB: {e}")
+    
+    def __del__(self):
+        """Clean up MongoDB connection."""
+        if self._client is not None:
+            self._client.close()
+            self.logger.debug("Closed MongoDB connection")

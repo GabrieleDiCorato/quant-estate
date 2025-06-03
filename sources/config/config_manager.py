@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Union
 
 from ..logging.logging import get_module_logger
+from ..connectors.exceptions import ConfigurationError
 
 logger = get_module_logger()
 
@@ -37,8 +38,7 @@ class ConfigManager:
             Dict containing the configuration
             
         Raises:
-            FileNotFoundError: If the configuration file doesn't exist
-            yaml.YAMLError: If the configuration file is invalid
+            ConfigurationError: If the configuration file doesn't exist or is invalid
         """
         # Create cache key
         cache_key = f"{connector}.{name}" if connector else name
@@ -57,21 +57,24 @@ class ConfigManager:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = yaml.safe_load(f)
+            if not isinstance(config, dict):
+                raise ConfigurationError(f"Configuration file {name} must contain a dictionary")
             self._configs[cache_key] = config
             logger.info(f"Successfully loaded configuration: {cache_key}")
             return config
         except FileNotFoundError:
-            logger.error(f"Configuration file not found: {config_path}")
-            raise
+            raise ConfigurationError(f"Configuration file not found: {config_path}")
         except yaml.YAMLError as e:
-            logger.error(f"Invalid YAML in configuration file {config_path}: {e}")
-            raise
+            raise ConfigurationError(f"Invalid YAML in configuration file {config_path}: {e}")
     
     def get_logging_config(self) -> Dict[str, Any]:
         """Get the logging configuration.
         
         Returns:
             Dict containing the logging configuration
+            
+        Raises:
+            ConfigurationError: If the logging configuration is invalid
         """
         return self.load_config('logging')
     
@@ -83,6 +86,9 @@ class ConfigManager:
             
         Returns:
             Dict containing the connector configuration
+            
+        Raises:
+            ConfigurationError: If the connector configuration is invalid
         """
         return self.load_config('default', connector)
     
@@ -94,24 +100,24 @@ class ConfigManager:
             
         Returns:
             Dict containing the storage configuration
+            
+        Raises:
+            ConfigurationError: If the storage configuration is invalid
         """
         config = self.get_connector_config(connector)
-        storage_config = config.get('storage_settings', {})
-        
-        # If MongoDB storage is selected, merge with MongoDB config
-        if storage_config.get('type') == 'mongodb':
-            try:
+        try:
+            storage_config = config['storage_settings']
+            storage_type = storage_config['type']
+            
+            # If MongoDB storage is selected, merge with MongoDB config
+            if storage_type == 'mongodb':
                 mongodb_config = self.load_config('mongodb', connector)
                 storage_config['settings'] = mongodb_config['mongodb']
                 logger.info("Merged MongoDB configuration with storage settings")
-            except FileNotFoundError:
-                logger.error("MongoDB configuration not found")
-                raise
-            except KeyError as e:
-                logger.error(f"Invalid MongoDB configuration: {e}")
-                raise
-        
-        return storage_config
+            
+            return storage_config
+        except KeyError as e:
+            raise ConfigurationError(f"Missing required storage configuration key: {e}")
     
     def get_module_config(self, module_name: str) -> Dict[str, Any]:
         """Get configuration for a specific module.
@@ -121,6 +127,12 @@ class ConfigManager:
             
         Returns:
             Dict containing the module configuration
+            
+        Raises:
+            ConfigurationError: If the module configuration is invalid
         """
         config = self.get_logging_config()
-        return config.get('handlers', {}).get('modules', {}).get(module_name, {}) 
+        try:
+            return config['handlers']['modules'][module_name]
+        except KeyError as e:
+            raise ConfigurationError(f"Missing required module configuration key: {e}") 

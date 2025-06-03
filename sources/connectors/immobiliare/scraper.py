@@ -58,14 +58,14 @@ class ImmobiliareScraper(BaseScraper):
             raise ValidationError("Given URL must not include 'search-list' as it uses another API to retrieve data")
         self.logger.debug("URL validation successful")
     
-    def extract_data(self, response: requests.Response) -> List[Dict[str, Any]]:
-        """Extract JSON data from the response.
+    def extract_data(self, response: requests.Response) -> List[RealEstate]:
+        """Extract JSON data from the response and convert to RealEstate objects.
         
         Args:
             response: HTTP response to extract data from
             
         Returns:
-            List of extracted data items
+            List of RealEstate objects
             
         Raises:
             ScrapingError: If there's an error extracting data
@@ -83,17 +83,27 @@ class ImmobiliareScraper(BaseScraper):
             data = json.loads(json_data)
             results = data["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["results"]
             
-            # Process surface data
+            # Process surface data and convert to RealEstate objects
+            real_estates = []
             for record in results:
                 if "realEstate" in record and "properties" in record["realEstate"]:
+                    # Process surface data
                     surface = record["realEstate"]["properties"][0].get("surface")
                     if surface:
                         surface_match = re.search(r'(\d+\.?\d*)', surface)
                         if surface_match:
                             record["realEstate"]["properties"][0]["surface_value"] = float(surface_match.group(1))
+                    
+                    # Convert to RealEstate object
+                    try:
+                        real_estate = RealEstate.from_dict(record)
+                        real_estates.append(real_estate)
+                    except Exception as e:
+                        self.logger.warning("Failed to convert record to RealEstate object: %s", str(e))
+                        continue
             
-            self.logger.info("Successfully extracted %d real estate listings", len(results))
-            return results
+            self.logger.info("Successfully extracted %d real estate listings", len(real_estates))
+            return real_estates
             
         except (json.JSONDecodeError, KeyError, AttributeError) as e:
             self.logger.error("Failed to extract JSON data: %s", str(e), exc_info=True)
@@ -132,14 +142,14 @@ class ImmobiliareScraper(BaseScraper):
             self.logger.error("Failed to generate next page URL: %s", str(e), exc_info=True)
             raise ValidationError(f"Failed to generate next page URL: {e}")
     
-    def scrape_page(self, url: str) -> List[Dict[str, Any]]:
+    def scrape_page(self, url: str) -> List[RealEstate]:
         """Scrape a single page of real estate listings.
         
         Args:
             url: URL of the page to scrape
             
         Returns:
-            List of extracted listings
+            List of RealEstate objects
             
         Raises:
             ScrapingError: If there's an error during scraping
@@ -152,7 +162,7 @@ class ImmobiliareScraper(BaseScraper):
             self.logger.error("Failed to scrape page %s: %s", url, str(e), exc_info=True)
             raise ScrapingError(f"Failed to scrape page: {e}")
     
-    def scrape_all_pages(self, start_url: str, max_pages: Optional[int] = None) -> List[Dict[str, Any]]:
+    def scrape_all_pages(self, start_url: str, max_pages: Optional[int] = None) -> List[RealEstate]:
         """Scrape all pages of listings.
         
         Args:
@@ -160,7 +170,7 @@ class ImmobiliareScraper(BaseScraper):
             max_pages: Optional maximum number of pages to scrape
             
         Returns:
-            List of all extracted listings
+            List of all RealEstate objects
             
         Raises:
             ScrapingError: If there's an error during scraping

@@ -10,7 +10,7 @@ import json
 import time
 import random
 
-from .exceptions import ScrapingError, StorageError, ValidationError
+from .exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 
 class BaseStorage(ABC):
     """Abstract base class for data storage implementations."""
