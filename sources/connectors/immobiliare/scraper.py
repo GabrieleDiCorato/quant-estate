@@ -10,8 +10,6 @@ from bs4 import BeautifulSoup
 import json
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
 import random
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 
 from ..base import BaseScraper
 from ..exceptions import (
@@ -20,15 +18,6 @@ from ..exceptions import (
 )
 from .models import RealEstate
 from ...logging.logging import get_class_logger
-
-# List of common User-Agents to rotate
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
-]
 
 class ImmobiliareScraper(BaseScraper):
     """Scraper implementation for immobiliare.it."""
@@ -44,77 +33,7 @@ class ImmobiliareScraper(BaseScraper):
         """
         super().__init__(config)
         self.logger = get_class_logger(self.__class__)
-        
-        # Set up session with retry strategy
-        self.session = requests.Session()
-        retry_strategy = Retry(
-            total=3,  # number of retries
-            backoff_factor=1,  # wait 1, 2, 4 seconds between retries
-            status_forcelist=[403, 429, 500, 502, 503, 504]  # retry on these status codes
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        self.session.mount("http://", adapter)
-        self.session.mount("https://", adapter)
-        
         self.logger.info("Initialized ImmobiliareScraper with base URL: %s", self.base_url)
-    
-    def _get_random_headers(self) -> Dict[str, str]:
-        """Generate random headers for each request.
-        
-        Returns:
-            Dict[str, str]: Headers dictionary
-        """
-        headers = {
-            "User-Agent": random.choice(USER_AGENTS),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-            "Cache-Control": "max-age=0",
-            "DNT": "1"
-        }
-        return headers
-    
-    def get_page(self, url: str) -> requests.Response:
-        """Get a page with proper delay and error handling.
-        
-        Args:
-            url: URL to fetch
-            
-        Returns:
-            requests.Response: The HTTP response
-            
-        Raises:
-            ValidationError: If the URL is invalid
-            ScrapingError: If there's an error fetching the page
-        """
-        self.validate_url(url)
-        
-        try:
-            # Add random jitter to delay
-            base_delay = random.uniform(self.min_delay, self.max_delay)
-            jitter = random.uniform(-2, 2)  # Add ±2 seconds of jitter
-            delay = max(0, base_delay + jitter)
-            
-            self.logger.debug("Waiting %.2f seconds before request", delay)
-            time.sleep(delay)
-            
-            # Make request with random headers
-            headers = self._get_random_headers()
-            response = self.session.get(url, headers=headers, timeout=30)
-            
-            if response.status_code != 200:
-                raise ScrapingError(f"Request failed with status code {response.status_code}")
-                
-            return response
-            
-        except requests.RequestException as e:
-            raise ScrapingError(f"Failed to make request: {e}")
     
     def validate_url(self, url: str) -> None:
         """Validate that the URL is appropriate for immobiliare.it.

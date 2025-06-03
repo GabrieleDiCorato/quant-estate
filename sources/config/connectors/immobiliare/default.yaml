@@ -4,25 +4,14 @@ base_url: "https://www.immobiliare.it"
 # Default headers for requests
 headers:
   User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
-  Accept-Language: "en-US,en;q=0.5"
+  Accept-Language: "en-US,en;q=0.9"
   Accept-Encoding: "gzip, deflate, br"
   Connection: "keep-alive"
-  Upgrade-Insecure-Requests: "1"
-  Sec-Fetch-Dest: "document"
-  Sec-Fetch-Mode: "navigate"
-  Sec-Fetch-Site: "none"
-  Sec-Fetch-User: "?1"
-  Cache-Control: "max-age=0"
-  DNT: "1"
 
 # Request settings
 request_settings:
-  min_delay: 15  # Minimum delay between requests in seconds
-  max_delay: 30  # Maximum delay between requests in seconds
-  timeout: 30    # Request timeout in seconds
-  max_retries: 3 # Maximum number of retries for failed requests
-  retry_delay: 1 # Base delay for retries in seconds
+  min_delay: 10  # Minimum delay between requests in seconds
+  max_delay: 20  # Maximum delay between requests in seconds
 
 # Storage settings
 storage_settings:
