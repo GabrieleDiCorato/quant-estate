@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 
 from ..base import BaseConnector
 from ..exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
-from ...configs import ConfigManager
+from ...config import ConfigManager
 from .models import RealEstate
 from .scraper import ImmobiliareScraper
 from .storage import FileStorage, MongoDBStorage

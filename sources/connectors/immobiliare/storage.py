@@ -2,21 +2,20 @@
 Storage implementations for immobiliare.it data.
 """
 
+# Standard library imports
 from abc import ABC, abstractmethod
-import json
-import csv
-import os
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
-import yaml
-import fcntl
-import threading
-from contextlib import contextmanager
+from typing import List
+
+# Third-party imports
+import csv
+import json
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure, ConfigurationError
 from pymongo.write_concern import WriteConcern
 
+# Local imports
 from .models import RealEstate
 from ..exceptions import StorageError
 from ...logging.logging import get_module_logger, get_class_logger
@@ -45,25 +44,19 @@ class DataStorage(ABC):
 class FileStorage(DataStorage):
     """File-based storage implementation using JSON and CSV files."""
     
-    def __init__(self, base_path: str, save_json: bool):
-        """Initialize file storage."""
+    def __init__(self, base_path: str, save_json: bool = False):
+        """Initialize file storage.
+        
+        Args:
+            base_path: Directory where files will be stored
+            save_json: Whether to save data in JSON format in addition to CSV
+        """
         self.base_path = Path(base_path)
         self.save_json = save_json
         self.logger = get_class_logger(self.__class__)
-        self._lock = threading.Lock()
         self.logger.info("Initialized FileStorage at %s (JSON saving: %s)", 
                         self.base_path, 
                         "enabled" if save_json else "disabled")
-    
-    @contextmanager
-    def _file_lock(self, file_path: Path):
-        """Acquire a file lock for safe concurrent access."""
-        with open(file_path, 'a+') as f:
-            try:
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                yield f
-            finally:
-                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
     
     def append_data(self, data: List[RealEstate]) -> bool:
         """Append data to storage.
@@ -87,14 +80,13 @@ class FileStorage(DataStorage):
         # Create directory if it doesn't exist
         self.base_path.mkdir(parents=True, exist_ok=True)
         
-        # Store as JSON
+        # Store as JSON if enabled
         if self.save_json:
             json_path = self.base_path / f"real_estate_{timestamp}.json"
             self.logger.debug("Saving JSON to %s", json_path)
             try:
-                with self._file_lock(json_path):
-                    with open(json_path, 'w', encoding='utf-8') as f:
-                        json.dump([item.dict() for item in data], f, ensure_ascii=False, indent=2)
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump([asdict(item) for item in data], f, ensure_ascii=False, indent=2)
                 self.logger.info("Successfully saved %d records to JSON file", len(data))
             except Exception as e:
                 self.logger.error("Failed to save JSON: %s", str(e), exc_info=True)
@@ -104,11 +96,10 @@ class FileStorage(DataStorage):
         csv_path = self.base_path / f"real_estate_{timestamp}.csv"
         self.logger.debug("Saving CSV to %s", csv_path)
         try:
-            with self._file_lock(csv_path):
-                with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-                    writer = csv.DictWriter(f, fieldnames=RealEstate.__fields__)
-                    writer.writeheader()
-                    writer.writerows([item.dict() for item in data])
+            with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=RealEstate.__annotations__.keys())
+                writer.writeheader()
+                writer.writerows([asdict(item) for item in data])
             self.logger.info("Successfully saved %d records to CSV file", len(data))
             return True
         except Exception as e:
@@ -162,7 +153,7 @@ class MongoDBStorage(DataStorage):
             collection = self._get_collection()
             
             # Convert RealEstate objects to dictionaries
-            documents = [item.dict() for item in data]
+            documents = [asdict(item) for item in data]
             
             # Insert documents with write concern
             result = collection.insert_many(documents)

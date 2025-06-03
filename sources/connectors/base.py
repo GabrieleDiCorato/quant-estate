@@ -9,8 +9,10 @@ from bs4 import BeautifulSoup
 import json
 import time
 import random
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-from .exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
+from .exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError, InvalidURLError, DataExtractionError, RequestError
 
 class BaseStorage(ABC):
     """Abstract base class for data storage implementations."""
@@ -60,6 +62,18 @@ class BaseScraper(ABC):
             self.base_url = config['base_url']
             self.min_delay = config['request_settings']['min_delay']
             self.max_delay = config['request_settings']['max_delay']
+            
+            # Set up session with retry strategy
+            self.session = requests.Session()
+            retry_strategy = Retry(
+                total=3,  # number of retries
+                backoff_factor=1,  # wait 1, 2, 4 seconds between retries
+                status_forcelist=[403, 429, 500, 502, 503, 504]  # retry on these status codes
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            self.session.mount("http://", adapter)
+            self.session.mount("https://", adapter)
+            
         except KeyError as e:
             raise ConfigurationError(f"Missing required configuration key: {e}")
     
@@ -79,8 +93,15 @@ class BaseScraper(ABC):
         self.validate_url(url)
         
         try:
-            response = requests.get(url, headers=self.headers)
-            time.sleep(random.uniform(self.min_delay, self.max_delay))
+            # Add random jitter to delay
+            base_delay = random.uniform(self.min_delay, self.max_delay)
+            jitter = random.uniform(-2, 2)  # Add ±2 seconds of jitter
+            delay = max(0, base_delay + jitter)
+            
+            time.sleep(delay)
+            
+            # Make request with headers
+            response = self.session.get(url, headers=self.headers, timeout=30)
             
             if response.status_code != 200:
                 raise ScrapingError(f"Request failed with status code {response.status_code}")
