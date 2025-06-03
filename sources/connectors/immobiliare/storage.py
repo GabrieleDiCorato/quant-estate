@@ -15,10 +15,10 @@ from pymongo.errors import ConnectionFailure, ConfigurationError
 
 from .models import RealEstate
 from .exceptions import StorageError
-from ...utils.logging import get_logger
+from ...utils.logging import get_module_logger, get_class_logger
 
 # Set up logging
-logger = get_logger("quant_estate.storage.immobiliare")
+logger = get_module_logger()
 
 class DataStorage(ABC):
     """Abstract base class for data storage implementations."""
@@ -40,7 +40,7 @@ class FileStorage(DataStorage):
         """Initialize file storage."""
         self.base_path = Path(base_path)
         self.save_json = save_json
-        self.logger = get_logger("quant_estate.storage.file")
+        self.logger = get_class_logger(self.__class__)
         self.logger.info("Initialized FileStorage at %s (JSON saving: %s)", 
                         self.base_path, 
                         "enabled" if save_json else "disabled")
@@ -105,7 +105,7 @@ class MongoDBStorage(DataStorage):
             'database': database,
             'collection': collection
         }
-        self.logger = get_logger("quant_estate.storage.mongodb")
+        self.logger = get_class_logger(self.__class__)
         self.logger.info("Initialized MongoDBStorage for %s.%s", database, collection)
     
     def store(self, data: List[RealEstate]) -> bool:

@@ -4,9 +4,41 @@ Logging utilities for the quant-estate project.
 
 import logging
 import sys
+import inspect
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Type
+
+def get_module_logger() -> logging.Logger:
+    """Get a logger instance for the current module.
+    
+    This function should be used at the module level to get a logger
+    that automatically uses the module's name.
+    
+    Returns:
+        logging.Logger: Configured logger instance
+    """
+    frame = inspect.currentframe()
+    if frame is None:
+        return logging.getLogger(__name__)
+    module = inspect.getmodule(frame.f_back)
+    if module is None:
+        return logging.getLogger(__name__)
+    return logging.getLogger(module.__name__)
+
+def get_class_logger(cls: Type) -> logging.Logger:
+    """Get a logger instance for a class.
+    
+    This function should be used in class constructors to get a logger
+    that uses the class's module and name.
+    
+    Args:
+        cls: The class to get a logger for
+        
+    Returns:
+        logging.Logger: Configured logger instance
+    """
+    return logging.getLogger(f"{cls.__module__}.{cls.__name__}")
 
 def setup_logging(config: Optional[Dict[str, Any]] = None) -> None:
     """Set up logging configuration based on the provided config.
@@ -86,8 +118,12 @@ def setup_logging(config: Optional[Dict[str, Any]] = None) -> None:
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the specified name.
     
+    This function should only be used when you need a specific logger name
+    that doesn't match the module or class structure. For module-level logging,
+    use get_module_logger() instead. For class-level logging, use get_class_logger().
+    
     Args:
-        name: Name of the logger (e.g., 'quant_estate.connector')
+        name: Name of the logger
         
     Returns:
         logging.Logger: Configured logger instance

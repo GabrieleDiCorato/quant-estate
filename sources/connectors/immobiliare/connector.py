@@ -14,10 +14,10 @@ from .exceptions import InvalidURLError, DataExtractionError
 from .models import RealEstate
 from .scraper import ImmobiliareScraper
 from .storage import FileStorage, MongoDBStorage
-from ...utils.logging import get_logger, setup_logging
+from ...utils.logging import get_module_logger, get_class_logger, setup_logging
 
 # Set up logging
-logger = get_logger("quant_estate.connector.immobiliare")
+logger = get_module_logger()
 
 class ImmobiliareScraper(BaseScraper):
     """Scraper implementation for immobiliare.it."""
@@ -25,7 +25,7 @@ class ImmobiliareScraper(BaseScraper):
     def __init__(self, config: Dict[str, Any]):
         """Initialize the scraper with configuration."""
         super().__init__(config)
-        self.logger = get_logger("quant_estate.scraper.immobiliare")
+        self.logger = get_class_logger(self.__class__)
         self.logger.info("Initialized ImmobiliareScraper with base URL: %s", self.base_url)
     
     def validate_url(self, url: str) -> None:

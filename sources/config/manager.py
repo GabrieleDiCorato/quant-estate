@@ -6,9 +6,9 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
 
-from ..utils.logging import get_logger
+from ..utils.logging import get_module_logger
 
-logger = get_logger("quant_estate.config")
+logger = get_module_logger()
 
 class ConfigManager:
     """Manages project-wide and connector-specific configurations."""
