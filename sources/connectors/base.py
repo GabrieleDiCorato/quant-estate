@@ -29,10 +29,10 @@ class BaseScraper(ABC):
     def __init__(self, config: Dict[str, Any]):
         """Initialize the scraper with configuration."""
         self.config = config
-        self.headers = config.get('headers', {})
+        self.headers = config['headers']
         self.base_url = config['base_url']
-        self.min_delay = config.get('request_settings', {}).get('min_delay', 1)
-        self.max_delay = config.get('request_settings', {}).get('max_delay', 3)
+        self.min_delay = config['request_settings']['min_delay']
+        self.max_delay = config['request_settings']['max_delay']
     
     def get_page(self, url: str) -> requests.Response:
         """Get a page with proper delay and error handling."""

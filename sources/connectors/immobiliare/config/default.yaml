@@ -15,8 +15,8 @@ request_settings:
 
 # Storage settings
 storage_settings:
-  folder_name: "immobiliare_data"  # Base folder name for storage
-  default_json_filename: "immobiliare.json"
-  default_csv_filename: "immobiliare.csv"
-  date_format: "%Y-%m-%d"  # Format for date in folder name
-  save_json: true  # Enable JSON file dumps by default 
+  type: "file"  # Storage type: "file" or "mongodb"
+  settings:
+    # File storage settings
+    base_path: "data/immobiliare"  # Base path for file storage
+    save_json: true  # Enable JSON file dumps 
