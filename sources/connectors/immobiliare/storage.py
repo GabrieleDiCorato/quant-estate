@@ -54,6 +54,25 @@ class FileStorage(DataStorage):
         self.base_path = Path(base_path)
         self.save_json = save_json
         self.logger = get_class_logger(self.__class__)
+        
+        # Create session timestamp for file naming
+        self.session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.json_path = self.base_path / f"real_estate_{self.session_timestamp}.json"
+        self.csv_path = self.base_path / f"real_estate_{self.session_timestamp}.csv"
+        
+        # Create directory if it doesn't exist
+        self.base_path.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize files with headers if they don't exist
+        if not self.csv_path.exists():
+            with open(self.csv_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=RealEstate.__annotations__.keys())
+                writer.writeheader()
+        
+        if self.save_json and not self.json_path.exists():
+            with open(self.json_path, 'w', encoding='utf-8') as f:
+                json.dump([], f, ensure_ascii=False, indent=2)
+        
         self.logger.info("Initialized FileStorage at %s (JSON saving: %s)", 
                         self.base_path, 
                         "enabled" if save_json else "disabled")
@@ -75,36 +94,37 @@ class FileStorage(DataStorage):
             return False
             
         self.logger.info("Storing %d real estate listings", len(data))
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # Create directory if it doesn't exist
-        self.base_path.mkdir(parents=True, exist_ok=True)
         
         # Store as JSON if enabled
         if self.save_json:
-            json_path = self.base_path / f"real_estate_{timestamp}.json"
-            self.logger.debug("Saving JSON to %s", json_path)
+            self.logger.debug("Appending to JSON file: %s", self.json_path)
             try:
-                with open(json_path, 'w', encoding='utf-8') as f:
-                    json.dump([asdict(item) for item in data], f, ensure_ascii=False, indent=2)
-                self.logger.info("Successfully saved %d records to JSON file", len(data))
+                # Read existing data
+                with open(self.json_path, 'r', encoding='utf-8') as f:
+                    existing_data = json.load(f)
+                
+                # Append new data
+                existing_data.extend([asdict(item) for item in data])
+                
+                # Write back all data
+                with open(self.json_path, 'w', encoding='utf-8') as f:
+                    json.dump(existing_data, f, ensure_ascii=False, indent=2)
+                self.logger.info("Successfully appended %d records to JSON file", len(data))
             except Exception as e:
-                self.logger.error("Failed to save JSON: %s", str(e), exc_info=True)
-                raise StorageError(f"Failed to save JSON: {e}")
+                self.logger.error("Failed to append to JSON: %s", str(e), exc_info=True)
+                raise StorageError(f"Failed to append to JSON: {e}")
         
         # Store as CSV
-        csv_path = self.base_path / f"real_estate_{timestamp}.csv"
-        self.logger.debug("Saving CSV to %s", csv_path)
+        self.logger.debug("Appending to CSV file: %s", self.csv_path)
         try:
-            with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=RealEstate.__annotations__.keys())
-                writer.writeheader()
                 writer.writerows([asdict(item) for item in data])
-            self.logger.info("Successfully saved %d records to CSV file", len(data))
+            self.logger.info("Successfully appended %d records to CSV file", len(data))
             return True
         except Exception as e:
-            self.logger.error("Failed to save CSV: %s", str(e), exc_info=True)
-            raise StorageError(f"Failed to save CSV: {e}")
+            self.logger.error("Failed to append to CSV: %s", str(e), exc_info=True)
+            raise StorageError(f"Failed to append to CSV: {e}")
 
 class MongoDBStorage(DataStorage):
     """MongoDB-based storage implementation."""

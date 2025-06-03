@@ -11,6 +11,7 @@ import time
 import random
 
 from .exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError, InvalidURLError, DataExtractionError, RequestError
+from ..logging.logging import get_class_logger
 
 class BaseStorage(ABC):
     """Abstract base class for data storage implementations."""
@@ -60,6 +61,13 @@ class BaseScraper(ABC):
             self.base_url = config['base_url']
             self.min_delay = config['request_settings']['min_delay']
             self.max_delay = config['request_settings']['max_delay']
+            
+            # Initialize logger
+            self.logger = get_class_logger(self.__class__)
+            
+            # Initialize session for cookie handling
+            self.session = requests.Session()
+            
         except KeyError as e:
             raise ConfigurationError(f"Missing required configuration key: {e}")
     
@@ -79,11 +87,19 @@ class BaseScraper(ABC):
         self.validate_url(url)
         
         try:
-            # Simple delay between requests
-            time.sleep(random.uniform(self.min_delay, self.max_delay))
+            # Add small random delay
+            delay = random.uniform(self.min_delay, self.max_delay)
+            time.sleep(delay)
             
-            # Make request with headers
-            response = requests.get(url, headers=self.headers)
+            # First visit the homepage to get cookies
+            if not hasattr(self, '_initialized'):
+                self.logger.debug("Visiting homepage to initialize session...")
+                self.session.get(self.base_url, headers=self.headers)
+                self._initialized = True
+                time.sleep(delay)  # Wait again before the actual request
+            
+            # Make request with session (which maintains cookies)
+            response = self.session.get(url, headers=self.headers)
             
             if response.status_code != 200:
                 raise ScrapingError(f"Request failed with status code {response.status_code}")

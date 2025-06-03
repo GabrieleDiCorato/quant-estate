@@ -58,6 +58,46 @@ class ImmobiliareScraper(BaseScraper):
             raise ValidationError("Given URL must not include 'search-list' as it uses another API to retrieve data")
         self.logger.debug("URL validation successful")
     
+    def get_full_description(self, property_id: str) -> str:
+        """Fetch the full description from the property detail page.
+        
+        Args:
+            property_id: The ID of the property
+            
+        Returns:
+            str: The full description of the property
+            
+        Raises:
+            ScrapingError: If there's an error fetching the description
+        """
+        try:
+            # Construct the detail page URL
+            detail_url = f"{self.base_url}/annunci/{property_id}"
+            self.logger.debug("Fetching full description from: %s", detail_url)
+            
+            # Add a small delay before the request
+            time.sleep(random.uniform(1, 2))
+            
+            # Get the detail page
+            response = self.get_page(detail_url)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Find the description element
+            description_elem = soup.find("div", {"class": "description"})
+            if description_elem:
+                full_description = description_elem.get_text(strip=True)
+                self.logger.debug("Found full description for property %s: %s", 
+                                property_id, full_description[:100] + "..." if len(full_description) > 100 else full_description)
+                return full_description
+            
+            self.logger.warning("Could not find description element for property %s", property_id)
+            return ""
+            
+        except Exception as e:
+            self.logger.error("Error fetching full description for property %s: %s", 
+                            property_id, str(e), exc_info=True)
+            return ""
+    
     def extract_data(self, response: requests.Response) -> List[RealEstate]:
         """Extract JSON data from the response and convert to RealEstate objects.
         
@@ -93,6 +133,29 @@ class ImmobiliareScraper(BaseScraper):
                         surface_match = re.search(r'(\d+\.?\d*)', surface)
                         if surface_match:
                             record["realEstate"]["properties"][0]["surface_value"] = float(surface_match.group(1))
+                    
+                    # Process description data
+                    properties = record["realEstate"]["properties"][0]
+                    raw_description = properties.get("description")
+                    if raw_description:
+                        # Log the raw description for debugging
+                        self.logger.debug("Raw description for property %s: %s", 
+                                        record["realEstate"]["id"], 
+                                        raw_description)
+                        
+                        # Check if description is truncated
+                        if raw_description.endswith("..."):
+                            self.logger.warning("Description appears to be truncated for property %s", 
+                                              record["realEstate"]["id"])
+                            # Fetch the full description
+                            full_description = self.get_full_description(record["realEstate"]["id"])
+                            if full_description:
+                                properties["description"] = full_description
+                                self.logger.info("Updated description for property %s with full text", 
+                                               record["realEstate"]["id"])
+                            else:
+                                self.logger.warning("Could not fetch full description for property %s", 
+                                                  record["realEstate"]["id"])
                     
                     # Convert to RealEstate object
                     try:
