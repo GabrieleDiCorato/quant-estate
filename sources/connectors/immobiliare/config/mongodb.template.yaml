@@ -1,0 +1,14 @@
+# MongoDB connection settings
+# Copy this file to mongodb.yaml and fill in your credentials
+mongodb:
+  connection_string: "mongodb://{username}:{password}@{host}:{port}/{database}"
+  username: "your_username"
+  password: "your_password"
+  host: "localhost"
+  port: 27017
+  database: "immobiliare"
+  collection: "properties"
+  auth_source: "admin"  # The database to authenticate against
+  ssl: false  # Set to true if using SSL/TLS
+  replica_set: null  # Set if using replica set
+  auth_mechanism: "SCRAM-SHA-256"  # Authentication mechanism 

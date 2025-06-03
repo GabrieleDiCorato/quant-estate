@@ -1,3 +1,7 @@
+"""
+Data models for real estate properties.
+"""
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -43,6 +47,9 @@ class RealEstate:
     @classmethod
     def from_dict(cls, data: dict) -> 'RealEstate':
         """Create a RealEstate instance from a dictionary."""
+        properties = data["realEstate"]["properties"][0]
+        location = properties["location"]
+        
         return cls(
             id=str(data["realEstate"]["id"]),
             url=data["seo"]["url"],
@@ -55,30 +62,30 @@ class RealEstate:
             is_luxury=bool(data["realEstate"]["luxury"]),
             formatted_price=data["realEstate"]["price"]["formattedValue"],
             price=data["realEstate"]["price"].get("value"),
-            bathrooms=data["realEstate"]["properties"][0].get("bathrooms"),
-            bedrooms=data["realEstate"]["properties"][0].get("bedRoomsNumber"),
-            floor=data["realEstate"]["properties"][0].get("floor", {}).get("abbreviation"),
-            formatted_floor=data["realEstate"]["properties"][0].get("floor", {}).get("value"),
-            total_floors=data["realEstate"]["properties"][0].get("floors"),
-            condition=data["realEstate"]["properties"][0].get("condition"),
-            rooms=data["realEstate"]["properties"][0].get("rooms"),
-            has_elevators=bool(data["realEstate"]["properties"][0].get("hasElevators")),
-            surface=None,  # Will be processed separately
-            surface_formatted=data["realEstate"]["properties"][0].get("surface"),
-            type=data["realEstate"]["properties"][0]["typologyGA4Translation"],
-            caption=data["realEstate"]["properties"][0].get("caption"),
-            category=data["realEstate"]["properties"][0]["category"]["name"],
-            description=data["realEstate"]["properties"][0].get("description"),
-            heating_type=data["realEstate"]["properties"][0].get("energy", {}).get("heatingType"),
-            air_conditioning=data["realEstate"]["properties"][0].get("energy", {}).get("airConditioning"),
-            latitude=float(data["realEstate"]["properties"][0]["location"]["latitude"]),
-            longitude=float(data["realEstate"]["properties"][0]["location"]["longitude"]),
-            region=data["realEstate"]["properties"][0]["location"]["region"],
-            province=data["realEstate"]["properties"][0]["location"]["province"],
-            macrozone=data["realEstate"]["properties"][0]["location"]["macrozone"],
-            microzone=data["realEstate"]["properties"][0]["location"]["microzone"],
-            city=data["realEstate"]["properties"][0]["location"]["city"],
-            country=data["realEstate"]["properties"][0]["location"]["nation"]["id"]
+            bathrooms=properties.get("bathrooms"),
+            bedrooms=properties.get("bedRoomsNumber"),
+            floor=properties.get("floor", {}).get("abbreviation"),
+            formatted_floor=properties.get("floor", {}).get("value"),
+            total_floors=properties.get("floors"),
+            condition=properties.get("condition"),
+            rooms=properties.get("rooms"),
+            has_elevators=bool(properties.get("hasElevators")),
+            surface=properties.get("surface_value"),  # Use the processed surface value
+            surface_formatted=properties.get("surface"),
+            type=properties["typologyGA4Translation"],
+            caption=properties.get("caption"),
+            category=properties["category"]["name"],
+            description=properties.get("description"),
+            heating_type=properties.get("energy", {}).get("heatingType"),
+            air_conditioning=properties.get("energy", {}).get("airConditioning"),
+            latitude=float(location["latitude"]),
+            longitude=float(location["longitude"]),
+            region=location["region"],
+            province=location["province"],
+            macrozone=location["macrozone"],
+            microzone=location["microzone"],
+            city=location["city"],
+            country=location["nation"]["id"]
         )
 
     def to_dict(self) -> dict:

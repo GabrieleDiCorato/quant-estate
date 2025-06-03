@@ -173,5 +173,8 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# MongoDB configuration
+sources/connectors/*/config/mongodb.yaml
+sources/connectors/*/config/*.local.yaml
 
 data/

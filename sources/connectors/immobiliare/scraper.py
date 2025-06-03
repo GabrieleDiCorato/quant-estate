@@ -1,108 +1,71 @@
+"""
+Scraper implementation for immobiliare.it.
+"""
+
 import re
-from typing import List, Optional
-import pandas as pd
+from typing import List, Dict, Any
+import requests
+from bs4 import BeautifulSoup
+import json
 
-from .connector import ImmobiliareConnector
+from ..base import BaseScraper
 from .models import RealEstate
-from .storage import DataStorage, FileStorage
-from .config import config
-from .exceptions import DataExtractionError
+from .exceptions import InvalidURLError, DataExtractionError
 
-class ImmobiliareScraper:
-    """Scrapes real estate data from immobiliare.it."""
+class ImmobiliareScraper(BaseScraper):
+    """Scraper implementation for immobiliare.it."""
     
-    def __init__(
-        self,
-        url: str,
-        storage: Optional[DataStorage] = None,
-        get_data_of_following_pages: bool = False,
-        max_pages: Optional[int] = None
-    ) -> None:
-        """Initialize the scraper with the target URL and options.
+    def validate_url(self, url: str) -> None:
+        """Validate that the URL is appropriate for immobiliare.it."""
+        if not self.base_url in url:
+            raise InvalidURLError(f"Given URL must include '{self.base_url}'")
         
-        Args:
-            url: The URL to scrape
-            storage: Optional storage instance (defaults to FileStorage if None)
-            get_data_of_following_pages: Whether to scrape following pages
-            max_pages: Maximum number of pages to scrape (None for no limit)
-        """
-        self.connector = ImmobiliareConnector()
-        self.base_url = url
-        self.get_data_of_following_pages = get_data_of_following_pages
-        self.max_pages = max_pages
-        self.storage = storage if storage is not None else FileStorage()
-        self.real_estates: List[RealEstate] = []
-        self.failed_pages: List[int] = []
+        if "mapCenter" in url:
+            raise InvalidURLError("Given URL must not include 'mapCenter' as it uses another API to retrieve data")
         
-        # Start scraping
-        self.gather_real_estate_data()
-        self.data_frame = pd.DataFrame([estate.to_dict() for estate in self.real_estates])
+        if "search-list" in url:
+            raise InvalidURLError("Given URL must not include 'search-list' as it uses another API to retrieve data")
     
-    def __str__(self) -> str:
-        return f"Immobiliare scraper - url='{self.base_url}'"
+    def extract_data(self, response: requests.Response) -> List[Dict[str, Any]]:
+        """Extract JSON data from the response."""
+        try:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            script_tag = soup.find("script", {"id": "__NEXT_DATA__"})
+            
+            if not script_tag:
+                raise DataExtractionError("Could not find __NEXT_DATA__ script tag")
+                
+            json_data = script_tag.text
+            data = json.loads(json_data)
+            results = data["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["results"]
+            
+            # Process surface data
+            for record in results:
+                if "realEstate" in record and "properties" in record["realEstate"]:
+                    surface = record["realEstate"]["properties"][0].get("surface")
+                    if surface:
+                        surface_match = re.search(r'(\d+\.?\d*)', surface)
+                        if surface_match:
+                            record["realEstate"]["properties"][0]["surface_value"] = float(surface_match.group(1))
+            
+            return results
+            
+        except (json.JSONDecodeError, KeyError, AttributeError) as e:
+            raise DataExtractionError(f"Failed to extract JSON data: {e}")
     
-    def gather_real_estate_data(self) -> None:
-        """Gather real estate data from the target URL and optionally following pages."""
-        current_url = self.base_url
-        current_page = 1
+    def get_next_page_url(self, current_url: str, page_number: int) -> str:
+        """Generate the URL for the next page of results."""
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
         
-        while True:
-            print(f"\nProcessing page {current_page}")
-            try:
-                # Get and process the page
-                response = self.connector.get_page(current_url)
-                json_data = self.connector.extract_json_data(response)
-                
-                if not json_data:
-                    print(f"No data found on page {current_page}")
-                    break
-                
-                # Process the data
-                page_estates = self._process_json_data(json_data)
-                self.real_estates.extend(page_estates)
-                
-                # Append the page data to storage
-                if not self.storage.append_data(json_data):
-                    self.failed_pages.append(current_page)
-                    print(f"Warning: Failed to append data for page {current_page}")
-                
-                if not self.get_data_of_following_pages:
-                    break
-                    
-                if self.max_pages and current_page >= self.max_pages:
-                    print(f"Reached maximum page limit of {self.max_pages}")
-                    break
-                
-                current_page += 1
-                current_url = self.connector.get_next_page_url(self.base_url, current_page)
-                
-            except Exception as e:
-                print(f"Error processing page {current_page}: {e}")
-                self.failed_pages.append(current_page)
-                break
-    
-    def _process_json_data(self, json_data: List[dict]) -> List[RealEstate]:
-        """Process JSON data into RealEstate objects."""
-        real_estates = []
+        parsed_url = urlparse(current_url)
+        query_params = parse_qs(parsed_url.query)
+        query_params['pag'] = [str(page_number)]
         
-        for record in json_data:
-            try:
-                real_estate = RealEstate.from_dict(record)
-                
-                # Process surface data if available
-                if real_estate.surface_formatted:
-                    surface_match = re.search(r'(\d+\.?\d*)', real_estate.surface_formatted)
-                    if surface_match:
-                        real_estate.surface = float(surface_match.group(1))
-                
-                real_estates.append(real_estate)
-                
-            except (KeyError, ValueError) as e:
-                print(f"Warning: Failed to process record: {e}")
-                continue
-        
-        return real_estates
-    
-    def get_failed_pages(self) -> List[int]:
-        """Get the list of pages that failed to save."""
-        return self.failed_pages 
+        return urlunparse((
+            parsed_url.scheme,
+            parsed_url.netloc,
+            parsed_url.path,
+            parsed_url.params,
+            urlencode(query_params, doseq=True),
+            parsed_url.fragment
+        )) 

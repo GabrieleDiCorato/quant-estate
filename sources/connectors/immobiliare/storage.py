@@ -1,3 +1,7 @@
+"""
+Storage implementations for real estate data.
+"""
+
 from abc import ABC, abstractmethod
 import json
 import csv
@@ -5,23 +9,19 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+import yaml
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, ConfigurationError
+
 from .models import RealEstate
 from .exceptions import StorageError
-from .config import config
 
 class DataStorage(ABC):
     """Abstract base class for data storage implementations."""
     
     @abstractmethod
     def append_data(self, data: List[Dict[str, Any]]) -> bool:
-        """Append data to storage.
-        
-        Args:
-            data: List of real estate data dictionaries to append
-            
-        Returns:
-            bool: True if append was successful, False otherwise
-        """
+        """Append data to storage."""
         pass
     
     @abstractmethod
@@ -32,32 +32,25 @@ class DataStorage(ABC):
 class FileStorage(DataStorage):
     """File-based storage implementation using JSON and CSV files."""
     
-    def __init__(self, base_path: str = None):
-        """Initialize the storage with an optional custom base path.
-        
-        Args:
-            base_path: Optional custom base path for storage
-        """
+    def __init__(self, base_path: str = None, save_json: bool = False):
+        """Initialize the storage with an optional custom base path."""
         if base_path:
             self.base_path = Path(base_path)
         else:
             # Get the absolute path to the project root
             project_root = Path(__file__).parent.parent.parent.parent
-            # Get the base folder name from config and append current date
-            folder_name = config.storage_settings.get("folder_name", "immobiliare_data")
-            date_str = datetime.now().strftime(config.storage_settings.get("date_format", "%Y-%m-%d"))
-            folder_name = f"{folder_name}_{date_str}"
-            
-            self.base_path = project_root / "data" / folder_name
+            # Create data directory with current date
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            self.base_path = project_root / "data" / f"immobiliare_data_{date_str}"
         
-        self.save_json = config.save_json
+        self.save_json = save_json
         self._ensure_directory_exists()
         print(f"Storage initialized at: {self.base_path}")
         
         # Initialize file paths
-        self.csv_file = self.base_path / config.storage_settings.get("default_csv_filename", "immobiliare.csv")
+        self.csv_file = self.base_path / "immobiliare.csv"
         if self.save_json:
-            self.json_file = self.base_path / config.storage_settings.get("default_json_filename", "immobiliare.json")
+            self.json_file = self.base_path / "immobiliare.json"
         
         # Initialize files if they don't exist
         self._initialize_files()
@@ -78,31 +71,35 @@ class FileStorage(DataStorage):
                 json.dump([], f)
             print(f"Initialized JSON file: {self.json_file}")
         
-        # Initialize CSV file
+        # Initialize CSV file with RealEstate model fields
         if not self.csv_file.exists():
             with open(self.csv_file, "w", newline="", encoding="utf-8") as f:
-                # We'll write the header when we have data
-                pass
+                writer = csv.DictWriter(f, fieldnames=RealEstate.__dataclass_fields__.keys())
+                writer.writeheader()
             print(f"Initialized CSV file: {self.csv_file}")
     
+    def _convert_newlines(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert newlines in string fields to \n."""
+        return {k: v.replace('\n', '\\n') if isinstance(v, str) else v 
+                for k, v in data.items()}
+    
     def append_data(self, data: List[Dict[str, Any]]) -> bool:
-        """Append data to both JSON and CSV files.
-        
-        Args:
-            data: List of real estate data dictionaries to append
-            
-        Returns:
-            bool: True if append was successful to either format, False otherwise
-        """
+        """Append data to both JSON and CSV files."""
         if not data:
             print("No data to append")
             return False
+        
+        # Convert newlines in string fields
+        cleaned_data = [self._convert_newlines(item) for item in data]
+        
+        # Convert raw data to RealEstate objects
+        real_estate_objects = [RealEstate.from_dict(item) for item in cleaned_data]
             
         json_success = True
         if self.save_json:
-            json_success = self._append_json(data)
+            json_success = self._append_json(cleaned_data)
         
-        csv_success = self._append_csv(data)
+        csv_success = self._append_csv(real_estate_objects)
         
         return json_success or csv_success
     
@@ -120,7 +117,7 @@ class FileStorage(DataStorage):
             
             # Write back all data
             with open(self.json_file, "w", encoding="utf-8") as f:
-                json.dump(existing_data, f, indent=4, ensure_ascii=False)
+                json.dump(existing_data, f, ensure_ascii=False)
             
             print(f"Appended {len(data)} records to JSON file: {self.json_file}")
             return True
@@ -129,24 +126,15 @@ class FileStorage(DataStorage):
             print(f"Warning: Failed to append JSON data: {e}")
             return False
     
-    def _append_csv(self, data: List[Dict[str, Any]]) -> bool:
+    def _append_csv(self, data: List[RealEstate]) -> bool:
         """Append data to the CSV file."""
         try:
-            # Check if file exists and has content
-            file_exists = self.csv_file.exists() and self.csv_file.stat().st_size > 0
-            
             # Open file in append mode
             with open(self.csv_file, "a", newline="", encoding="utf-8") as csvfile:
-                if data:
-                    fieldnames = data[0].keys()
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    
-                    # Write header only if file is new
-                    if not file_exists:
-                        writer.writeheader()
-                    
-                    # Write the data
-                    writer.writerows(data)
+                writer = csv.DictWriter(csvfile, fieldnames=RealEstate.__dataclass_fields__.keys())
+                
+                # Write the data
+                writer.writerows([item.to_dict() for item in data])
             
             print(f"Appended {len(data)} records to CSV file: {self.csv_file}")
             return True
@@ -167,40 +155,89 @@ class FileStorage(DataStorage):
 class MongoDBStorage(DataStorage):
     """MongoDB-based storage implementation."""
     
-    def __init__(self, connection_string: str, database: str = "immobiliare", collection: str = "properties"):
+    def __init__(self, config_path: Optional[str] = None):
         """Initialize MongoDB storage.
         
         Args:
-            connection_string: MongoDB connection string
-            database: Database name
-            collection: Collection name
+            config_path: Optional path to MongoDB configuration file
         """
+        self.config = self._load_config(config_path)
+        self.client = self._create_client()
+        self.db = self.client[self.config['database']]
+        self.collection = self.db[self.config['collection']]
+        print(f"Connected to MongoDB: {self.config['database']}.{self.config['collection']}")
+    
+    def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
+        """Load MongoDB configuration from file."""
+        if config_path is None:
+            config_path = Path(__file__).parent / 'config' / 'mongodb.yaml'
+        
         try:
-            from pymongo import MongoClient
-            self.client = MongoClient(connection_string)
-            self.db = self.client[database]
-            self.collection = self.db[collection]
-            print(f"Connected to MongoDB: {database}.{collection}")
-        except ImportError:
-            raise StorageError("pymongo package is required for MongoDB storage")
-        except Exception as e:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)['mongodb']
+                
+            # Validate required fields
+            required_fields = ['username', 'password', 'host', 'port', 'database', 'collection']
+            missing_fields = [field for field in required_fields if field not in config]
+            if missing_fields:
+                raise ConfigurationError(f"Missing required fields in MongoDB config: {missing_fields}")
+            
+            return config
+            
+        except FileNotFoundError:
+            raise StorageError(f"MongoDB configuration file not found: {config_path}")
+        except yaml.YAMLError as e:
+            raise StorageError(f"Invalid MongoDB configuration: {e}")
+    
+    def _create_client(self) -> MongoClient:
+        """Create MongoDB client with configuration."""
+        try:
+            # Build connection string
+            connection_string = self.config['connection_string'].format(
+                username=self.config['username'],
+                password=self.config['password'],
+                host=self.config['host'],
+                port=self.config['port'],
+                database=self.config['database']
+            )
+            
+            # Create client options
+            client_options = {
+                'authSource': self.config.get('auth_source', 'admin'),
+                'ssl': self.config.get('ssl', False)
+            }
+            
+            if self.config.get('replica_set'):
+                client_options['replicaSet'] = self.config['replica_set']
+            
+            if self.config.get('auth_mechanism'):
+                client_options['authMechanism'] = self.config['auth_mechanism']
+            
+            # Create and test client
+            client = MongoClient(connection_string, **client_options)
+            client.admin.command('ping')  # Test connection
+            return client
+            
+        except ConnectionFailure as e:
             raise StorageError(f"Failed to connect to MongoDB: {e}")
+        except Exception as e:
+            raise StorageError(f"Error creating MongoDB client: {e}")
+    
+    def _convert_newlines(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert newlines in string fields to \n."""
+        return {k: v.replace('\n', '\\n') if isinstance(v, str) else v 
+                for k, v in data.items()}
     
     def append_data(self, data: List[Dict[str, Any]]) -> bool:
-        """Insert data into MongoDB collection.
-        
-        Args:
-            data: List of real estate data dictionaries to append
-            
-        Returns:
-            bool: True if insert was successful, False otherwise
-        """
+        """Insert data into MongoDB collection."""
         if not data:
             print("No data to append")
             return False
             
         try:
-            result = self.collection.insert_many(data)
+            # Convert newlines in string fields
+            cleaned_data = [self._convert_newlines(item) for item in data]
+            result = self.collection.insert_many(cleaned_data)
             print(f"Inserted {len(result.inserted_ids)} records into MongoDB")
             return True
         except Exception as e:

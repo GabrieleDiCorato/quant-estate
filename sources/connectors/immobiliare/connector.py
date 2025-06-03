@@ -1,23 +1,22 @@
-import requests
-import time
-import random
-from bs4 import BeautifulSoup
+"""
+Immobiliare.it connector implementation.
+"""
+
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from typing import Optional, Dict, Any
+from typing import List, Dict, Any
 import json
+import requests
+from bs4 import BeautifulSoup
 
-from .exceptions import InvalidURLError, RequestError, DataExtractionError
-from .config import config
+from ..base import BaseConnector, BaseScraper
+from ..config import ConfigManager
+from .exceptions import InvalidURLError, DataExtractionError
+from .models import RealEstate
+from .scraper import ImmobiliareScraper
+from .storage import FileStorage, MongoDBStorage
 
-class ImmobiliareConnector:
-    """Handles all communication with immobiliare.it."""
-    
-    def __init__(self, headers: Dict[str, str] = None):
-        """Initialize the connector with optional custom headers."""
-        self.headers = headers or config.headers
-        self.base_url = config.base_url
-        self.min_delay = config.request_settings["min_delay"]
-        self.max_delay = config.request_settings["max_delay"]
+class ImmobiliareScraper(BaseScraper):
+    """Scraper implementation for immobiliare.it."""
     
     def validate_url(self, url: str) -> None:
         """Validate that the URL is appropriate for immobiliare.it."""
@@ -30,22 +29,21 @@ class ImmobiliareConnector:
         if "search-list" in url:
             raise InvalidURLError("Given URL must not include 'search-list' as it uses another API to retrieve data")
     
-    def get_page(self, url: str) -> requests.Response:
-        """Get a page from immobiliare.it with proper delay and error handling."""
-        self.validate_url(url)
-        
+    def extract_data(self, response: requests.Response) -> List[Dict[str, Any]]:
+        """Extract JSON data from the response."""
         try:
-            print(f"Requesting URL: {url}")
-            response = requests.get(url, headers=self.headers)
-            time.sleep(random.uniform(self.min_delay, self.max_delay))
+            soup = BeautifulSoup(response.text, 'html.parser')
+            script_tag = soup.find("script", {"id": "__NEXT_DATA__"})
             
-            if response.status_code != 200:
-                raise RequestError(f"Request failed with status code {response.status_code}")
+            if not script_tag:
+                raise DataExtractionError("Could not find __NEXT_DATA__ script tag")
                 
-            return response
+            json_data = script_tag.text
+            data = json.loads(json_data)
+            return data["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["results"]
             
-        except requests.RequestException as e:
-            raise RequestError(f"Failed to make request: {e}")
+        except (json.JSONDecodeError, KeyError, AttributeError) as e:
+            raise DataExtractionError(f"Failed to extract JSON data: {e}")
     
     def get_next_page_url(self, current_url: str, page_number: int) -> str:
         """Generate the URL for the next page of results."""
@@ -61,19 +59,24 @@ class ImmobiliareConnector:
             urlencode(query_params, doseq=True),
             parsed_url.fragment
         ))
+
+class ImmobiliareConnector(BaseConnector):
+    """Connector implementation for immobiliare.it."""
     
-    def extract_json_data(self, response: requests.Response) -> Optional[Dict[str, Any]]:
-        """Extract JSON data from the response."""
-        try:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            script_tag = soup.find("script", {"id": "__NEXT_DATA__"})
-            
-            if not script_tag:
-                raise DataExtractionError("Could not find __NEXT_DATA__ script tag")
-                
-            json_data = script_tag.text
-            data = json.loads(json_data)
-            return data["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["results"]
-            
-        except (json.JSONDecodeError, KeyError, AttributeError) as e:
-            raise DataExtractionError(f"Failed to extract JSON data: {e}") 
+    def __init__(self, config_manager: ConfigManager):
+        """Initialize the connector with configuration."""
+        scraper = ImmobiliareScraper(config_manager.get_connector_config('immobiliare'))
+        storage = self._create_storage(config_manager.get_storage_config())
+        super().__init__(scraper, storage)
+    
+    def _create_storage(self, storage_config: Dict[str, Any]):
+        """Create storage instance based on configuration."""
+        storage_type = storage_config.get('type', 'file')
+        settings = storage_config.get('settings', {})
+        
+        if storage_type == 'file':
+            return FileStorage(**settings)
+        elif storage_type == 'mongodb':
+            return MongoDBStorage(**settings)
+        else:
+            raise ValueError(f"Unsupported storage type: {storage_type}") 
