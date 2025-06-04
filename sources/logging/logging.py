@@ -58,7 +58,7 @@ def setup_logging(config: Optional[Dict[str, Any]] = None) -> None:
             },
             'file': {
                 'enabled': True,
-                'level': 'DEBUG',
+                'level': 'INFO',
                 'filename': 'quant_estate_{date}.log',
                 'date_format': '%Y-%m-%d',
                 'directory': 'logs'

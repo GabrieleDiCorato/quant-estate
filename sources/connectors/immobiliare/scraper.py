@@ -137,26 +137,8 @@ class ImmobiliareScraper(BaseScraper):
                     # Process description data
                     properties = record["realEstate"]["properties"][0]
                     raw_description = properties.get("description")
-                    if raw_description:
-                        # Log the raw description for debugging
-                        self.logger.debug("Raw description for property %s: %s", 
-                                        record["realEstate"]["id"], 
-                                        raw_description)
-                        
-                        # Check if description is truncated
-                        if raw_description.endswith("..."):
-                            self.logger.warning("Description appears to be truncated for property %s", 
-                                              record["realEstate"]["id"])
-                            # Fetch the full description
-                            full_description = self.get_full_description(record["realEstate"]["id"])
-                            if full_description:
-                                properties["description"] = full_description
-                                self.logger.info("Updated description for property %s with full text", 
-                                               record["realEstate"]["id"])
-                            else:
-                                self.logger.warning("Could not fetch full description for property %s", 
-                                                  record["realEstate"]["id"])
-                    
+                    self.logger.debug(f"Raw description for property {record["realEstate"]["id"]}: {raw_description}")
+                       
                     # Convert to RealEstate object
                     try:
                         real_estate = RealEstate.from_dict(record)

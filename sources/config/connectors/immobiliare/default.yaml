@@ -20,8 +20,8 @@ headers:
 
 # Request settings
 request_settings:
-  min_delay: 5  # Minimum delay between requests in seconds
-  max_delay: 10  # Maximum delay between requests in seconds
+  min_delay: 10  # Minimum delay between requests in seconds
+  max_delay: 20  # Maximum delay between requests in seconds
 
 # Storage settings
 storage_settings:
