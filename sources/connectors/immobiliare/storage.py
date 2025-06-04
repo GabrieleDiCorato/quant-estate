@@ -129,17 +129,38 @@ class FileStorage(DataStorage):
 class MongoDBStorage(DataStorage):
     """MongoDB-based storage implementation."""
     
-    def __init__(self, connection_string: str, database: str, collection: str):
-        """Initialize MongoDB storage."""
+    def __init__(self, connection_string: str, database: str, collection: str, **kwargs):
+        """Initialize MongoDB storage.
+        
+        Args:
+            connection_string: MongoDB connection string template
+            database: Database name
+            collection: Collection name
+            **kwargs: Additional connection parameters (host, port, username, password, etc.)
+        """
         self.config = {
             'connection_string': connection_string,
             'database': database,
-            'collection': collection
+            'collection': collection,
+            **kwargs
         }
         self.logger = get_class_logger(self.__class__)
         self._client = None
         self._collection = None
-        self.logger.info("Initialized MongoDBStorage for %s.%s", database, collection)
+        
+        # Format the connection string with all parameters
+        from urllib.parse import quote_plus
+        formatted_connection = connection_string.format(
+            username=quote_plus(self.config.get('username', '')),
+            password=quote_plus(self.config.get('password', '')),
+            host=self.config.get('host', 'localhost'),
+            db_query=self.config.get('db_query', ''),
+            database=database
+        )
+        self.config['connection_string'] = formatted_connection
+        
+        self.logger.info("Initialized MongoDBStorage [%s] for %s.%s", 
+                        self.config['connection_string'], database, collection)
     
     def _get_collection(self):
         """Get MongoDB collection with proper write concern."""
@@ -148,7 +169,7 @@ class MongoDBStorage(DataStorage):
                 self._client = MongoClient(self.config['connection_string'])
             db = self._client[self.config['database']]
             self._collection = db[self.config['collection']].with_options(
-                write_concern=WriteConcern(w=1, journal=True)
+                write_concern=WriteConcern(w=1)
             )
         return self._collection
     

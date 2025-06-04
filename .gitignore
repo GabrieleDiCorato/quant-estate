@@ -174,7 +174,7 @@ cython_debug/
 .pypirc
 
 # MongoDB configuration
-sources/connectors/*/config/mongodb.yaml
+sources/config/connectors/*/mongodb.yaml
 sources/connectors/*/config/*.local.yaml
 
 data/

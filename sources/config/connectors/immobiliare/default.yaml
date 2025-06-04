@@ -25,7 +25,7 @@ request_settings:
 
 # Storage settings
 storage_settings:
-  type: "file"  # Storage type: "file" or "mongodb"
+  type: "mongodb"  # Storage type: "file" or "mongodb"
   settings:
     # File storage settings
     base_path: "data/immobiliare"  # Base path for file storage

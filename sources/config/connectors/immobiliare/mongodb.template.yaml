@@ -1,11 +1,13 @@
 # MongoDB connection settings
 mongodb:
   # Connection settings
-  connection_string: "mongodb://{username}:{password}@{host}:{port}/{database}"
-  host: "localhost"
-  port: 27017
-  database: "quant_estate"
-  collection: "immobiliare"
+  connection_string: "mongodb+srv://{username}:{password}@{host}:{port}/{database}"
+  host: ""
+  # Port is not needed in srv connections
+  #port: 27017
+  db_query: ""
+  database: ""
+  collection: ""
   
   # Authentication settings
   username: ""  # Set your MongoDB username
@@ -26,4 +28,3 @@ mongodb:
   write_concern:
     w: 1  # Write acknowledgment level
     wtimeout: 5000  # Write timeout in milliseconds
-    journal: true  # Journal write concern 

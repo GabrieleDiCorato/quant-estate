@@ -54,7 +54,11 @@ class ImmobiliareConnector(BaseConnector):
                 storage = MongoDBStorage(
                     connection_string=settings['connection_string'],
                     database=settings['database'],
-                    collection=settings['collection']
+                    collection=settings['collection'],
+                    username=settings.get('username', ''),
+                    password=settings.get('password', ''),
+                    host=settings.get('host', 'localhost'),
+                    db_query=settings.get('db_query', '')
                 )
                 logger.info("Created MongoDBStorage for %s.%s", 
                            storage.config['database'], 
