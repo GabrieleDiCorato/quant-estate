@@ -1,91 +1,87 @@
 """
 Data models for real estate properties.
 """
-
-from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 
 class RealEstate(BaseModel):
     """Data model for a real estate property."""
-    id: str
-    url: str
-    contract: str
-    agency_id: Optional[str]
-    agency_url: Optional[str]
-    agency_name: Optional[str]
-    is_private_ad: bool
-    is_new: bool
-    is_luxury: bool
-    formatted_price: str
-    price: Optional[int]
-    bathrooms: Optional[int]
-    bedrooms: Optional[int]
-    floor: Optional[str]
-    formatted_floor: Optional[str]
-    total_floors: Optional[int]
-    condition: Optional[str]
-    rooms: Optional[int]
-    has_elevators: bool
-    surface: Optional[float]
-    surface_formatted: Optional[str]
-    type: str
-    caption: Optional[str]
-    category: str
-    description: Optional[str]
-    heating_type: Optional[str]
-    air_conditioning: Optional[str]
-    latitude: float
-    longitude: float
-    region: str
-    province: str
-    macrozone: str
-    microzone: str
-    city: str
-    country: str
+
+    # Configuration: immutable, no extra fields, and performance optimizations
+    model_config = ConfigDict(
+        # Data processing
+        str_strip_whitespace=True,
+        validate_assignment=False,
+        validate_default=True,
+        allow_inf_nan=False,
+        # Schema generation
+        extra="forbid",
+        frozen=True,
+        # Performance & looks
+        cache_strings=True,
+        use_enum_values=True
+    )
+
+    # Core identifiers
+    id: str = Field(..., description="Unique identifier for the property")
+    url: str = Field(..., description="URL of the property listing")
+    contract: str = Field(..., description="Type of contract (sale, rent, etc.)")
+
+    # Agency information
+    agency_id: str | None = Field(None, description="Agency unique identifier")
+    agency_url: str | None = Field(None, description="Agency website URL")
+    agency_name: str | None = Field(None, description="Agency display name")
+    is_private_ad: bool = Field(False, description="Whether this is a private listing")
+
+    # Property status
+    is_new: bool = Field(False, description="Whether the property is new construction")
+    is_luxury: bool = Field(False, description="Whether this is a luxury property")
+
+    # Pricing
+    formatted_price: str = Field(..., description="Human-readable price string")
+    price: int | None = Field(None, description="Numeric price value", ge=0)
+
+    # Property details
+    bathrooms: int | None = Field(None, description="Number of bathrooms", ge=0)
+    bedrooms: int | None = Field(None, description="Number of bedrooms", ge=0)
+    floor: str | None = Field(None, description="Floor designation")
+    formatted_floor: str | None = Field(None, description="Human-readable floor info")
+    total_floors: int | None = Field(None, description="Total floors in building", ge=0)
+    condition: str | None = Field(None, description="Property condition")
+    rooms: int | None = Field(None, description="Total number of rooms", ge=0)
+    has_elevators: bool = Field(False, description="Whether building has elevators")
+
+    # Surface area
+    surface: float | None = Field(None, description="Property surface area in square meters", ge=0)
+    surface_formatted: str | None = Field(None, description="Human-readable surface area")
+
+    # Property classification
+    type: str = Field(..., description="Property type (apartment, house, etc.)")
+    caption: str | None = Field(None, description="Property caption/title")
+    category: str = Field(..., description="Property category")
+    description: str | None = Field(None, description="Property description")
+
+    # Energy and utilities
+    heating_type: str | None = Field(None, description="Type of heating system")
+    air_conditioning: str | None = Field(None, description="Air conditioning type")
+
+    # Location
+    latitude: float = Field(..., description="Latitude coordinate", ge=-90, le=90)
+    longitude: float = Field(..., description="Longitude coordinate", ge=-180, le=180)
+    region: str = Field(..., description="Region/state")
+    province: str = Field(..., description="Province")
+    macrozone: str = Field(..., description="Macro geographical zone")
+    microzone: str = Field(..., description="Micro geographical zone")
+    city: str = Field(..., description="City name")
+    country: str = Field(..., description="Country code")
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'RealEstate':
+    def from_dict(cls, data: dict) -> "RealEstate":
         """Create a RealEstate instance from a dictionary."""
-        properties = data["realEstate"]["properties"][0]
-        location = properties["location"]
-        
-        return cls(
-            id=str(data["realEstate"]["id"]),
-            url=data["seo"]["url"],
-            contract=data["realEstate"]["contract"],
-            agency_id=data["realEstate"]["advertiser"].get("agency", {}).get("label"),
-            agency_url=data["realEstate"]["advertiser"].get("agency", {}).get("agencyUrl"),
-            agency_name=data["realEstate"]["advertiser"].get("agency", {}).get("displayName"),
-            is_private_ad=data["realEstate"]["advertiser"].get("agency") is None,
-            is_new=bool(data["realEstate"]["isNew"]),
-            is_luxury=bool(data["realEstate"]["luxury"]),
-            formatted_price=data["realEstate"]["price"]["formattedValue"],
-            price=data["realEstate"]["price"].get("value"),
-            bathrooms=properties.get("bathrooms"),
-            bedrooms=properties.get("bedRoomsNumber"),
-            floor=properties.get("floor", {}).get("abbreviation"),
-            formatted_floor=properties.get("floor", {}).get("value"),
-            total_floors=properties.get("floors"),
-            condition=properties.get("condition"),
-            rooms=properties.get("rooms"),
-            has_elevators=bool(properties.get("hasElevators")),
-            surface=properties.get("surface_value"),  # Use the processed surface value
-            surface_formatted=properties.get("surface"),
-            type=properties["typologyGA4Translation"],
-            caption=properties.get("caption"),
-            category=properties["category"]["name"],
-            description=properties.get("description"),
-            heating_type=properties.get("energy", {}).get("heatingType"),
-            air_conditioning=properties.get("energy", {}).get("airConditioning"),
-            latitude=float(location["latitude"]),
-            longitude=float(location["longitude"]),
-            region=location["region"],
-            province=location["province"],
-            macrozone=location["macrozone"],
-            microzone=location["microzone"],
-            city=location["city"],
-            country=location["nation"]["id"]
-        )
+        # This is a more efficient way to validate and create the model using Pydantic.
+        # This method will automatically validate the data and convert it
+        # to the appropriate types as defined in the model.
+        # If the model changes, this will ensure that the data is still valid.
+        return RealEstate.model_validate(data)
 
     def to_dict(self) -> dict:
         """Convert the RealEstate instance to a dictionary."""

@@ -11,17 +11,17 @@ import json
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
 import random
 
-from ..AbstractScraper import AbstractScraper
+from ..base_scraper import AbstractScraper
 from ...exceptions import (
     ScrapingError, ValidationError, ConfigurationError,
     InvalidURLError, DataExtractionError, RequestError
 )
-from .models import RealEstate
+from ...datamodel.real_estate import RealEstate
 from ...logging.logging import get_class_logger
 
 class ImmobiliareScraper(AbstractScraper):
     """Scraper implementation for immobiliare.it."""
-    
+
     def __init__(self, config: Dict[str, Any]):
         """Initialize the scraper with configuration.
         
@@ -34,7 +34,7 @@ class ImmobiliareScraper(AbstractScraper):
         super().__init__(config)
         self.logger = get_class_logger(self.__class__)
         self.logger.info("Initialized ImmobiliareScraper with base URL: %s", self.base_url)
-    
+
     def validate_url(self, url: str) -> None:
         """Validate that the URL is appropriate for immobiliare.it.
         
@@ -48,16 +48,16 @@ class ImmobiliareScraper(AbstractScraper):
         if not self.base_url in url:
             self.logger.error("Invalid URL: missing base URL %s", self.base_url)
             raise ValidationError(f"Given URL must include '{self.base_url}'")
-        
+
         if "mapCenter" in url:
             self.logger.error("Invalid URL: contains 'mapCenter' which uses a different API")
             raise ValidationError("Given URL must not include 'mapCenter' as it uses another API to retrieve data")
-        
+
         if "search-list" in url:
             self.logger.error("Invalid URL: contains 'search-list' which uses a different API")
             raise ValidationError("Given URL must not include 'search-list' as it uses another API to retrieve data")
         self.logger.debug("URL validation successful")
-    
+
     def get_full_description(self, property_id: str) -> str:
         """Fetch the full description from the property detail page.
         
@@ -74,14 +74,14 @@ class ImmobiliareScraper(AbstractScraper):
             # Construct the detail page URL
             detail_url = f"{self.base_url}/annunci/{property_id}"
             self.logger.debug("Fetching full description from: %s", detail_url)
-            
+
             # Add a small delay before the request
             time.sleep(random.uniform(1, 2))
-            
+
             # Get the detail page
             response = self.get_page(detail_url)
             soup = BeautifulSoup(response.text, 'html.parser')
-            
+
             # Find the description element
             description_elem = soup.find("div", {"class": "description"})
             if description_elem:
@@ -89,15 +89,15 @@ class ImmobiliareScraper(AbstractScraper):
                 self.logger.debug("Found full description for property %s: %s", 
                                 property_id, full_description[:100] + "..." if len(full_description) > 100 else full_description)
                 return full_description
-            
+
             self.logger.warning("Could not find description element for property %s", property_id)
             return ""
-            
+
         except Exception as e:
             self.logger.error("Error fetching full description for property %s: %s", 
                             property_id, str(e), exc_info=True)
             return ""
-    
+
     def extract_data(self, response: requests.Response) -> List[RealEstate]:
         """Extract JSON data from the response and convert to RealEstate objects.
         
@@ -114,15 +114,15 @@ class ImmobiliareScraper(AbstractScraper):
         try:
             soup = BeautifulSoup(response.text, 'html.parser')
             script_tag = soup.find("script", {"id": "__NEXT_DATA__"})
-            
+
             if not script_tag:
                 self.logger.error("Failed to find __NEXT_DATA__ script tag in response")
                 raise ScrapingError("Could not find __NEXT_DATA__ script tag")
-                
+
             json_data = script_tag.text
             data = json.loads(json_data)
             results = data["props"]["pageProps"]["dehydratedState"]["queries"][0]["state"]["data"]["results"]
-            
+
             # Process surface data and convert to RealEstate objects
             real_estates = []
             for record in results:
@@ -133,27 +133,69 @@ class ImmobiliareScraper(AbstractScraper):
                         surface_match = re.search(r'(\d+\.?\d*)', surface)
                         if surface_match:
                             record["realEstate"]["properties"][0]["surface_value"] = float(surface_match.group(1))
-                    
+
                     # Process description data
                     properties = record["realEstate"]["properties"][0]
                     raw_description = properties.get("description")
                     self.logger.debug(f"Raw description for property {record["realEstate"]["id"]}: {raw_description}")
-                       
+
                     # Convert to RealEstate object
                     try:
-                        real_estate = RealEstate.from_dict(record)
+                        real_estate = self.placeholder(record)
                         real_estates.append(real_estate)
                     except Exception as e:
                         self.logger.warning("Failed to convert record to RealEstate object: %s", str(e))
                         continue
-            
+
             self.logger.info("Successfully extracted %d real estate listings", len(real_estates))
             return real_estates
-            
+
         except (json.JSONDecodeError, KeyError, AttributeError) as e:
             self.logger.error("Failed to extract JSON data: %s", str(e), exc_info=True)
             raise ScrapingError(f"Failed to extract JSON data: {e}")
-    
+
+    def placeholder(self, data) -> RealEstate:
+        properties = data["realEstate"]["properties"][0]
+        location = properties["location"]
+
+        return RealEstate(
+            id=str(data["realEstate"]["id"]),
+            url=data["seo"]["url"],
+            contract=data["realEstate"]["contract"],
+            agency_id=data["realEstate"]["advertiser"].get("agency", {}).get("label"),
+            agency_url=data["realEstate"]["advertiser"].get("agency", {}).get("agencyUrl"),
+            agency_name=data["realEstate"]["advertiser"].get("agency", {}).get("displayName"),
+            is_private_ad=data["realEstate"]["advertiser"].get("agency") is None,
+            is_new=bool(data["realEstate"]["isNew"]),
+            is_luxury=bool(data["realEstate"]["luxury"]),
+            formatted_price=data["realEstate"]["price"]["formattedValue"],
+            price=data["realEstate"]["price"].get("value"),
+            bathrooms=properties.get("bathrooms"),
+            bedrooms=properties.get("bedRoomsNumber"),
+            floor=properties.get("floor", {}).get("abbreviation"),
+            formatted_floor=properties.get("floor", {}).get("value"),
+            total_floors=properties.get("floors"),
+            condition=properties.get("condition"),
+            rooms=properties.get("rooms"),
+            has_elevators=bool(properties.get("hasElevators")),
+            surface=properties.get("surface_value"),  # Use the processed surface value
+            surface_formatted=properties.get("surface"),
+            type=properties["typologyGA4Translation"],
+            caption=properties.get("caption"),
+            category=properties["category"]["name"],
+            description=properties.get("description"),
+            heating_type=properties.get("energy", {}).get("heatingType"),
+            air_conditioning=properties.get("energy", {}).get("airConditioning"),
+            latitude=float(location["latitude"]),
+            longitude=float(location["longitude"]),
+            region=location["region"],
+            province=location["province"],
+            macrozone=location["macrozone"],
+            microzone=location["microzone"],
+            city=location["city"],
+            country=location["nation"]["id"]
+        )
+
     def get_next_page_url(self, current_url: str, page_number: int) -> str:
         """Generate the URL for the next page of results.
         
@@ -172,7 +214,7 @@ class ImmobiliareScraper(AbstractScraper):
             parsed_url = urlparse(current_url)
             query_params = parse_qs(parsed_url.query)
             query_params['pag'] = [str(page_number)]
-            
+
             next_url = urlunparse((
                 parsed_url.scheme,
                 parsed_url.netloc,
@@ -186,7 +228,7 @@ class ImmobiliareScraper(AbstractScraper):
         except Exception as e:
             self.logger.error("Failed to generate next page URL: %s", str(e), exc_info=True)
             raise ValidationError(f"Failed to generate next page URL: {e}")
-    
+
     def scrape_page(self, url: str) -> List[RealEstate]:
         """Scrape a single page of real estate listings.
         
@@ -206,7 +248,7 @@ class ImmobiliareScraper(AbstractScraper):
         except Exception as e:
             self.logger.error("Failed to scrape page %s: %s", url, str(e), exc_info=True)
             raise ScrapingError(f"Failed to scrape page: {e}")
-    
+
     def scrape_all_pages(self, start_url: str, max_pages: Optional[int] = None) -> List[RealEstate]:
         """Scrape all pages of listings.
         
@@ -223,37 +265,37 @@ class ImmobiliareScraper(AbstractScraper):
         self.logger.info("Starting to scrape all pages from: %s (max pages: %s)", 
                         start_url, 
                         str(max_pages) if max_pages else "unlimited")
-        
+
         all_listings = []
         current_url = start_url
         page_count = 0
-        
+
         while current_url and (max_pages is None or page_count < max_pages):
             try:
                 page_count += 1
                 self.logger.info("Scraping page %d: %s", page_count, current_url)
-                
+
                 page_listings = self.scrape_page(current_url)
-                
+
                 if not page_listings:
                     self.logger.warning("No listings found on page %d", page_count)
                     break
-                
+
                 all_listings.extend(page_listings)
                 self.logger.info("Total listings collected so far: %d", len(all_listings))
-                
+
                 # Get the next page URL
                 page_count += 1
                 current_url = self.get_next_page_url(current_url, page_count)
-                
+
                 if current_url:
                     self.logger.debug("Waiting before next page request...")
                     time.sleep(random.uniform(self.min_delay, self.max_delay))
-                
+
             except Exception as e:
                 self.logger.error("Error scraping page %d: %s", page_count, str(e), exc_info=True)
                 raise ScrapingError(f"Failed to scrape page {page_count}: {e}")
-        
+
         self.logger.info("Finished scraping. Total pages scraped: %d, Total listings: %d", 
                         page_count, 
                         len(all_listings))
