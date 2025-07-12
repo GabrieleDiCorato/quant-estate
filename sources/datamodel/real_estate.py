@@ -2,11 +2,10 @@
 Data models for real estate properties.
 """
 
-from dataclasses import dataclass
 from typing import Optional
+from pydantic import BaseModel
 
-@dataclass
-class RealEstate:
+class RealEstate(BaseModel):
     """Data model for a real estate property."""
     id: str
     url: str
@@ -90,40 +89,4 @@ class RealEstate:
 
     def to_dict(self) -> dict:
         """Convert the RealEstate instance to a dictionary."""
-        return {
-            "id": self.id,
-            "url": self.url,
-            "contract": self.contract,
-            "agency_id": self.agency_id,
-            "agency_url": self.agency_url,
-            "agency_name": self.agency_name,
-            "is_private_ad": self.is_private_ad,
-            "is_new": self.is_new,
-            "is_luxury": self.is_luxury,
-            "formatted_price": self.formatted_price,
-            "price": self.price,
-            "bathrooms": self.bathrooms,
-            "bedrooms": self.bedrooms,
-            "floor": self.floor,
-            "formatted_floor": self.formatted_floor,
-            "total_floors": self.total_floors,
-            "condition": self.condition,
-            "rooms": self.rooms,
-            "has_elevators": self.has_elevators,
-            "surface": self.surface,
-            "surface_formatted": self.surface_formatted,
-            "type": self.type,
-            "caption": self.caption,
-            "category": self.category,
-            "description": self.description,
-            "heating_type": self.heating_type,
-            "air_conditioning": self.air_conditioning,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
-            "region": self.region,
-            "province": self.province,
-            "macrozone": self.macrozone,
-            "microzone": self.microzone,
-            "city": self.city,
-            "country": self.country
-        } 
+        return self.model_dump() 
