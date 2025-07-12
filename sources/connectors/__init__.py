@@ -2,13 +2,15 @@
 Base classes and utilities for connectors.
 """
 
-from .base import BaseConnector, BaseStorage, BaseScraper
-from .exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
+from .AbstractScraper import AbstractScraper
+from .AbstractStorage import AbstractStorage
+from .BaseConnector import AbstractConnector
+from ..exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 
 __all__ = [
-    'BaseConnector',
-    'BaseStorage',
-    'BaseScraper',
+    'AbstractConnector',
+    'AbstractStorage',
+    'AbstractScraper',
     'ScrapingError',
     'StorageError',
     'ValidationError',

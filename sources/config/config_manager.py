@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Union
 
 from ..logging.logging import get_module_logger
-from ..connectors.exceptions import ConfigurationError
+from ..exceptions import ConfigurationError
 
 logger = get_module_logger()
 
@@ -22,7 +22,8 @@ class ConfigManager:
                        If None, uses the default config directory.
         """
         if config_dir is None:
-            config_dir = Path(__file__).parent.parent / 'config'
+            # Use the config directory relative to this file
+            config_dir = Path(__file__).parent.absolute()
         self.config_dir = Path(config_dir)
         self._configs: Dict[str, Dict[str, Any]] = {}
         logger.info(f"Initialized ConfigManager with config directory: {self.config_dir}")

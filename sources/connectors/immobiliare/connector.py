@@ -4,8 +4,8 @@ Immobiliare.it connector implementation.
 
 from typing import List, Dict, Any, Optional
 
-from ..base import BaseConnector
-from ..exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
+from ..BaseConnector import AbstractConnector
+from ...exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 from ...config import ConfigManager
 from .models import RealEstate
 from .scraper import ImmobiliareScraper
@@ -15,7 +15,7 @@ from ...logging.logging import get_module_logger, get_class_logger, setup_loggin
 # Set up logging
 logger = get_module_logger()
 
-class ImmobiliareConnector(BaseConnector):
+class ImmobiliareConnector(AbstractConnector):
     """Connector implementation for immobiliare.it."""
     
     def __init__(self, config_manager: ConfigManager):
