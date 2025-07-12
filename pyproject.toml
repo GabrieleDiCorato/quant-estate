@@ -5,13 +5,23 @@ description = "Real estate data collection and analysis toolkit"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {file = "LICENSE"}
+authors = [
+    {name = "Gabriele Di Corato"},
+    {name = "Massimiliano Del Forno"},
+    {name = "Benedetta Ferri"},
+    {name = "Chiara Giromini"},
+    {name = "Andrea Pivotto"},
+    {name = "Alessandro Valente"}
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
     "matplotlib>=3.10.3",
@@ -31,6 +41,12 @@ dev = [
     "jupyter>=1.0.0",
     "ipykernel>=6.0.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/GabrieleDiCorato/quant-estate"
+Documentation = "https://github.com/GabrieleDiCorato/quant-estate#readme"
+Issues = "https://github.com/GabrieleDiCorato/quant-estate/issues"
+
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
