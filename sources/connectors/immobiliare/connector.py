@@ -4,10 +4,10 @@ Immobiliare.it connector implementation.
 
 from typing import List, Dict, Any, Optional
 
-from ..BaseConnector import AbstractConnector
+from ..base_connector import AbstractConnector
 from ...exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 from ...config import ConfigManager
-from .models import RealEstate
+from ...datamodel.real_estate import RealEstateListing
 from .scraper import ImmobiliareScraper
 from .storage import FileStorage, MongoDBStorage
 from ...logging.logging import get_module_logger, get_class_logger, setup_logging

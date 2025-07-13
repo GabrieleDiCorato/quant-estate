@@ -2,8 +2,8 @@
 Base classes for real estate data connectors.
 """
 
-from sources.connectors.AbstractScraper import AbstractScraper
-from sources.connectors.AbstractStorage import AbstractStorage
+from sources.connectors.base_scraper import AbstractScraper
+from sources.connectors.base_storage import AbstractStorage
 from ..exceptions import ScrapingError, StorageError, ValidationError
 
 class AbstractConnector:

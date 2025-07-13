@@ -9,7 +9,7 @@ from .connectors.base_storage import AbstractStorage
 from .connectors.base_connector import AbstractConnector
 from .config import ConfigManager
 from .logging import setup_logging, get_logger
-from .datamodel import RealEstate
+from .datamodel import RealEstateListing
 from .exceptions import (
     ConnectorError,
     ScrapingError,
@@ -25,7 +25,7 @@ __all__ = [
     'ConfigManager',
     'setup_logging',
     'get_logger',
-    'RealEstate',
+    'RealEstateListing',
     'ConnectorError',
     'ScrapingError',
     'StorageError',

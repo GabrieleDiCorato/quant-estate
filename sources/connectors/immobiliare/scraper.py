@@ -16,7 +16,7 @@ from ...exceptions import (
     ScrapingError, ValidationError, ConfigurationError,
     InvalidURLError, DataExtractionError, RequestError
 )
-from ...datamodel.real_estate import RealEstate
+from ...datamodel.real_estate import RealEstateListing
 from ...logging.logging import get_class_logger
 
 class ImmobiliareScraper(AbstractScraper):
@@ -98,7 +98,7 @@ class ImmobiliareScraper(AbstractScraper):
                             property_id, str(e), exc_info=True)
             return ""
 
-    def extract_data(self, response: requests.Response) -> List[RealEstate]:
+    def extract_data(self, response: requests.Response) -> List[RealEstateListing]:
         """Extract JSON data from the response and convert to RealEstate objects.
         
         Args:
@@ -154,11 +154,11 @@ class ImmobiliareScraper(AbstractScraper):
             self.logger.error("Failed to extract JSON data: %s", str(e), exc_info=True)
             raise ScrapingError(f"Failed to extract JSON data: {e}")
 
-    def placeholder(self, data) -> RealEstate:
+    def placeholder(self, data) -> RealEstateListing:
         properties = data["realEstate"]["properties"][0]
         location = properties["location"]
 
-        return RealEstate(
+        return RealEstateListing(
             id=str(data["realEstate"]["id"]),
             url=data["seo"]["url"],
             contract=data["realEstate"]["contract"],
@@ -229,7 +229,7 @@ class ImmobiliareScraper(AbstractScraper):
             self.logger.error("Failed to generate next page URL: %s", str(e), exc_info=True)
             raise ValidationError(f"Failed to generate next page URL: {e}")
 
-    def scrape_page(self, url: str) -> List[RealEstate]:
+    def scrape_page(self, url: str) -> List[RealEstateListing]:
         """Scrape a single page of real estate listings.
         
         Args:
@@ -249,7 +249,7 @@ class ImmobiliareScraper(AbstractScraper):
             self.logger.error("Failed to scrape page %s: %s", url, str(e), exc_info=True)
             raise ScrapingError(f"Failed to scrape page: {e}")
 
-    def scrape_all_pages(self, start_url: str, max_pages: Optional[int] = None) -> List[RealEstate]:
+    def scrape_all_pages(self, start_url: str, max_pages: Optional[int] = None) -> List[RealEstateListing]:
         """Scrape all pages of listings.
         
         Args:
