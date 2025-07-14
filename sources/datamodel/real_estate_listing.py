@@ -2,7 +2,7 @@
 Data models for real estate properties.
 """
 from pydantic import Field, HttpUrl
-from .base_model import BaseModelWithConfig
+from .model_config import BaseModelWithConfig
 from .enumerations import *
 
 class RealEstateListing(BaseModelWithConfig):

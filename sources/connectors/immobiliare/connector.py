@@ -7,25 +7,22 @@ from typing import List, Dict, Any, Optional
 from ..base_connector import AbstractConnector
 from ...exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 from ...config import ConfigManager
-from ...datamodel.real_estate import RealEstateListing
+from ...datamodel.real_estate_listing import RealEstateListing
 from .scraper import ImmobiliareScraper
 from .storage import FileStorage, MongoDBStorage
-from ...logging.logging import get_module_logger, get_class_logger, setup_logging
-
-# Set up logging
-logger = get_module_logger()
+from ...logging_utils.logging import get_module_logger, get_class_logger, setup_logging
 
 class ImmobiliareConnector(AbstractConnector):
     """Connector implementation for immobiliare.it."""
-    
+
     def __init__(self, config_manager: ConfigManager):
         """Initialize the connector with configuration."""
-        logger.info("Initializing ImmobiliareConnector")
-        
         try:
             # Set up project-wide logging
             setup_logging(config_manager.get_logging_config())
-            
+            self.logger = get_class_logger(self.__class__)
+            self.logger.info("Initializing ImmobiliareConnector")
+
             # Initialize components
             scraper = ImmobiliareScraper(config_manager.get_connector_config('immobiliare'))
             storage = self._create_storage(config_manager.get_storage_config('immobiliare'))
@@ -35,14 +32,14 @@ class ImmobiliareConnector(AbstractConnector):
         except Exception as e:
             logger.error("Failed to initialize ImmobiliareConnector: %s", str(e), exc_info=True)
             raise ConfigurationError(f"Failed to initialize connector: {e}")
-    
+
     def _create_storage(self, storage_config: Dict[str, Any]):
         """Create storage instance based on configuration."""
         logger.debug("Creating storage with config: %s", storage_config)
         try:
             storage_type = storage_config['type']
             settings = storage_config['settings']
-            
+
             if storage_type == 'file':
                 storage = FileStorage(
                     base_path=settings['base_path'],
@@ -70,7 +67,7 @@ class ImmobiliareConnector(AbstractConnector):
             raise ConfigurationError(f"Missing required storage configuration key: {e}")
         except Exception as e:
             raise ConfigurationError(f"Failed to create storage: {e}")
-    
+
     def scrape_and_store(self, start_url: str, max_pages: int = None) -> bool:
         """Scrape data from the given URL and store it."""
         logger.info("Starting scraping from %s (max pages: %s)", 

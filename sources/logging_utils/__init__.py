@@ -10,7 +10,7 @@ from .logging_utils import (
     reset_logging_configuration,
     LoggingConfigError,
 )
-from .logger import LoggingMixin
+from .logging_mixin import LoggingMixin
 
 __all__ = [
     'setup_logging', 

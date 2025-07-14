@@ -16,9 +16,9 @@ from pymongo import MongoClient
 from pymongo.write_concern import WriteConcern
 
 # Local imports
-from ...datamodel.real_estate import RealEstateListing
+from ...datamodel.real_estate_listing import RealEstateListing
 from ...exceptions import StorageError
-from ...logging.logging import get_module_logger, get_class_logger
+from ...logging_utils.logging import get_module_logger, get_class_logger
 
 # Set up logging
 logger = get_module_logger()

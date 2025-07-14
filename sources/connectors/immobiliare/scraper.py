@@ -16,8 +16,8 @@ from ...exceptions import (
     ScrapingError, ValidationError, ConfigurationError,
     InvalidURLError, DataExtractionError, RequestError
 )
-from ...datamodel.real_estate import RealEstateListing
-from ...logging.logging import get_class_logger
+from ...datamodel.real_estate_listing import RealEstateListing
+from ...logging_utils.logging import get_class_logger
 
 class ImmobiliareScraper(AbstractScraper):
     """Scraper implementation for immobiliare.it."""
@@ -196,7 +196,7 @@ class ImmobiliareScraper(AbstractScraper):
             country=location["nation"]["id"]
         )
 
-    def get_next_page_url(self, current_url: str, page_number: int) -> str:
+    def get_page_url(self, current_url: str, page_number: int) -> str:
         """Generate the URL for the next page of results.
         
         Args:
@@ -286,7 +286,7 @@ class ImmobiliareScraper(AbstractScraper):
 
                 # Get the next page URL
                 page_count += 1
-                current_url = self.get_next_page_url(current_url, page_count)
+                current_url = self.get_page_url(current_url, page_count)
 
                 if current_url:
                     self.logger.debug("Waiting before next page request...")

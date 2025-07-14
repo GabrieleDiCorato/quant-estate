@@ -1,5 +1,6 @@
 from sources.exceptions import ConfigurationError, ScrapingError
-from sources.logging.logging import get_class_logger
+from sources.logging_utils import get_class_logger
+from sources.datamodel.real_estate_listing import RealEstateListing
 
 import requests
 import random
@@ -87,7 +88,7 @@ class AbstractScraper(ABC):
         pass
 
     @abstractmethod
-    def extract_data(self, response: requests.Response) -> list[dict[str, Any]]:
+    def extract_data(self, response: requests.Response) -> list[RealEstateListing]:
         """Extract data from the response.
 
         Args:
@@ -102,17 +103,23 @@ class AbstractScraper(ABC):
         pass
 
     @abstractmethod
-    def get_next_page_url(self, current_url: str, page_number: int) -> str:
-        """Generate the URL for the next page of results.
-
+    def get_page_url(self, url_template: str, page_number: int) -> str:
+        """ Generate the URL for the next page.
         Args:
-            current_url: Current page URL
-            page_number: Next page number
+            url_template: Template for the URL
+            page_number: Page number to generate the URL for
 
         Returns:
-            str: URL for the next page
+            str: The generated URL for the next page
+        """
+        pass
 
-        Raises:
-            ValidationError: If the generated URL is invalid
+    @abstractmethod
+    def _should_continue_scraping(self, page_number: int, response: requests.Response | None) -> bool:
+        """Determine if scraping should continue based on the response and page number.
+
+        Args:
+            page_number: Current page number
+            response: HTTP response from the current page
         """
         pass
