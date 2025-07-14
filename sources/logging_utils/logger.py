@@ -2,12 +2,9 @@
 Simple Logger base class for inheritance.
 """
 
-from __future__ import annotations
+from .logging_utils import get_class_logger
 
-import logging as stdlib_logging
-from typing import Type
-
-class Logger:
+class LoggingMixin:
     """Simple base class that provides logging capability to subclasses.
     
     Usage:
@@ -21,7 +18,7 @@ class Logger:
                    super().__init__()
                    self.logger.info("MyClass initialized")
     """
-    
+
     def __init__(self, *args, **kwargs) -> None:
         """Initialize the logger for this class.
         
@@ -29,12 +26,11 @@ class Logger:
         setup_logging() from logging_utils before using this class.
         """
         super().__init__(*args, **kwargs)
-        self.logger = self._get_class_logger()
-    
-    def _get_class_logger(self) -> stdlib_logging.Logger:
-        """Get a logger instance for this class.
-        
-        Returns:
-            stdlib_logging.Logger: Logger instance named after the class
-        """
-        return stdlib_logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
+        self._logger = None
+
+    @property
+    def logger(self):
+        """Lazy-loaded logger property."""
+        if self._logger is None:
+            self._logger = get_class_logger(self.__class__)
+        return self._logger
