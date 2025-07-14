@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Real estate data collection and analysis toolkit"
 readme = "README.md"
 requires-python = ">=3.12"
-license = {file = "LICENSE"}
+license = {text = "BSL-1.0"}
 authors = [
     {name = "Gabriele Di Corato"},
     {name = "Massimiliano Del Forno"},
@@ -16,7 +16,6 @@ authors = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
