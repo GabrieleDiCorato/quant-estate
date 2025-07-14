@@ -5,7 +5,7 @@ Immobiliare.it web scraper package
 from .scraper import ImmobiliareScraper
 from .connector import ImmobiliareConnector
 from .storage import FileStorage, MongoDBStorage, DataStorage
-from ...datamodel.real_estate_listing import RealEstateListing
+from ...datamodel.listing_details import ListingDetails
 from ...exceptions import (
     ScrapingError,
     StorageError,
@@ -21,7 +21,7 @@ __all__ = [
     'FileStorage',
     'MongoDBStorage',
     'DataStorage',
-    'RealEstateListing',
+    'ListingDetails',
     'ScrapingError',
     'StorageError',
     'ValidationError',

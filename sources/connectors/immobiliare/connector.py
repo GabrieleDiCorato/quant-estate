@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from ..base_connector import AbstractConnector
 from ...exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 from ...config import ConfigManager
-from ...datamodel.real_estate_listing import RealEstateListing
+from ...datamodel.listing_details import ListingDetails
 from .scraper import ImmobiliareScraper
 from .storage import FileStorage, MongoDBStorage
 from ...logging_utils.logging import get_module_logger, get_class_logger, setup_logging

@@ -16,7 +16,7 @@ from pymongo import MongoClient
 from pymongo.write_concern import WriteConcern
 
 # Local imports
-from ...datamodel.real_estate_listing import RealEstateListing
+from ...datamodel.listing_details import ListingDetails
 from ...exceptions import StorageError
 from ...logging_utils.logging import get_module_logger, get_class_logger
 
@@ -27,7 +27,7 @@ class DataStorage(ABC):
     """Abstract base class for data storage implementations."""
     
     @abstractmethod
-    def append_data(self, data: List[RealEstateListing]) -> bool:
+    def append_data(self, data: List[ListingDetails]) -> bool:
         """Append data to storage.
         
         Args:
@@ -66,7 +66,7 @@ class FileStorage(DataStorage):
         # Initialize files with headers if they don't exist
         if not self.csv_path.exists():
             with open(self.csv_path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=RealEstateListing.__annotations__.keys())
+                writer = csv.DictWriter(f, fieldnames=ListingDetails.__annotations__.keys())
                 writer.writeheader()
         
         if self.save_json and not self.json_path.exists():
@@ -77,7 +77,7 @@ class FileStorage(DataStorage):
                         self.base_path, 
                         "enabled" if save_json else "disabled")
     
-    def append_data(self, data: List[RealEstateListing]) -> bool:
+    def append_data(self, data: List[ListingDetails]) -> bool:
         """Append data to storage.
         
         Args:
@@ -118,7 +118,7 @@ class FileStorage(DataStorage):
         self.logger.debug("Appending to CSV file: %s", self.csv_path)
         try:
             with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=RealEstateListing.__annotations__.keys())
+                writer = csv.DictWriter(f, fieldnames=ListingDetails.__annotations__.keys())
                 writer.writerows([asdict(item) for item in data])
             self.logger.info("Successfully appended %d records to CSV file", len(data))
             return True
@@ -173,7 +173,7 @@ class MongoDBStorage(DataStorage):
             )
         return self._collection
     
-    def append_data(self, data: List[RealEstateListing]) -> bool:
+    def append_data(self, data: List[ListingDetails]) -> bool:
         """Append data to storage.
         
         Args:

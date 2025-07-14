@@ -8,7 +8,7 @@ from sources.logging_utils.logging_mixin import LoggingMixin
 from sources.connectors.base_scraper import AbstractScraper
 from sources.connectors.base_storage import AbstractStorage
 from ..exceptions import ScrapingError, StorageError, ValidationError
-from sources.datamodel.real_estate_listing import RealEstateListing
+from sources.datamodel.listing_details import ListingDetails
 
 class AbstractConnector(LoggingMixin):
     """Base class for real estate data connectors."""
@@ -75,7 +75,7 @@ class AbstractConnector(LoggingMixin):
                 # Get and parse the page
                 current_url: str = self.scraper.get_page_url(url_template, page_number)
                 response = self.scraper.get_page(current_url)
-                data: list[RealEstateListing] = self.scraper.extract_data(response)
+                data: list[ListingDetails] = self.scraper.extract_data(response)
 
                 if not data:
                     break

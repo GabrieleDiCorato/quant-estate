@@ -1,6 +1,6 @@
 from sources.exceptions import ConfigurationError, ScrapingError
 from sources.logging_utils import get_class_logger
-from sources.datamodel.real_estate_listing import RealEstateListing
+from sources.datamodel.listing_details import ListingDetails
 
 import requests
 import random
@@ -88,7 +88,7 @@ class AbstractScraper(ABC):
         pass
 
     @abstractmethod
-    def extract_data(self, response: requests.Response) -> list[RealEstateListing]:
+    def extract_data(self, response: requests.Response) -> list[ListingDetails]:
         """Extract data from the response.
 
         Args:
