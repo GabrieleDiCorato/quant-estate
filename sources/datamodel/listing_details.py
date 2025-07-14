@@ -1,17 +1,16 @@
 """
-Data models for real estate properties.
+Data model for real estate properties.
 """
 from pydantic import Field, HttpUrl
-from .model_config import BaseModelWithConfig
+from .base_datamodel import QuantEstateDataObject
+from .listing_id import ListingId
 from .enumerations import *
 
-class RealEstateListing(BaseModelWithConfig):
+class ListingDetails(QuantEstateDataObject):
     """Data model for a real estate property."""
 
-    # Core identifiers
-    id: str = Field(..., description="Unique identifier for the property")
-    title: str = Field(..., description="Title of the property listing")
-    url: HttpUrl = Field(..., description="URL of the property listing") # http or https, TLD required, host required, max length 2083.
+    # Core identifier
+    listing_id: ListingId = Field(..., description="Unique identifier for the property listing")
 
     # Pricing
     formatted_price: str = Field(..., description="Human-readable price string")
@@ -68,13 +67,13 @@ class RealEstateListing(BaseModelWithConfig):
     parking_info: str | None = Field(None, description="Parking information (garage, street parking, etc.)")
 
     @classmethod
-    def from_dict(cls, data: dict) -> "RealEstateListing":
+    def from_dict(cls, data: dict) -> "ListingDetails":
         """Create a RealEstate instance from a dictionary."""
         # This is a more efficient way to validate and create the model using Pydantic.
         # This method will automatically validate the data and convert it
         # to the appropriate types as defined in the model.
         # If the model changes, this will ensure that the data is still valid.
-        return RealEstateListing.model_validate(data)
+        return ListingDetails.model_validate(data)
 
     def to_dict(self) -> dict:
         """Convert the RealEstate instance to a dictionary."""

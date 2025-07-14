@@ -2,8 +2,9 @@
 Data models for the quant-estate project.
 """
 
-from .model_config import BaseModelWithConfig
-from .real_estate_listing import RealEstateListing
+from .base_datamodel import QuantEstateDataObject
+from .listing_details import ListingDetails
 from .enumerations import ContractType
+from .listing_id import ListingId
 
-__all__ = ['BaseModelWithConfig', 'RealEstateListing', 'ContractType']
+__all__ = ['QuantEstateDataObject', 'ListingId', 'ListingDetails', 'ContractType']

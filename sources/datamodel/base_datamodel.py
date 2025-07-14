@@ -4,8 +4,8 @@ Basic data model configuration for our real estate application.
 
 from pydantic import BaseModel, ConfigDict
 
-class BaseModelWithConfig(BaseModel):
-    """Data model for a real estate property."""
+class QuantEstateDataObject(BaseModel):
+    """Base class for all data objects in the QuantEstate application."""
 
     # Configuration: immutable, no extra fields, and performance optimizations
     model_config = ConfigDict(

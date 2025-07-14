@@ -10,6 +10,10 @@ class BaseEnum(Enum):
     def __str__(self):
         return self.value
 
+class Source(BaseEnum):
+    """Enumeration for data source types."""
+    IMMOBILIARE = "immobiliare"
+
 class ContractType(BaseEnum):
     SALE = "sale"
     RENT = "rent"
