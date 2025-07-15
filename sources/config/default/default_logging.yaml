@@ -1,0 +1,30 @@
+# Logging configuration for the quant-estate project
+
+logging:
+  # Global logging settings
+  level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
+  date_format: '%Y-%m-%d %H:%M:%S'
+
+  # Handler configurations
+  handlers:
+    # Console output
+    console:
+      enabled: true
+      level: DEBUG
+      
+    # File output
+    file:
+      enabled: true
+      level: DEBUG
+      filename: 'quant_estate_{date}.log'
+      date_format: '%Y-%m-%d'
+      directory: 'logs'
+      
+    # Module-specific settings
+    modules:
+      connectors:
+        level: DEBUG
+        handlers:
+          console: true
+          file: true
