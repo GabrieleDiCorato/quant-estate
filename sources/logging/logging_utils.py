@@ -35,36 +35,13 @@ def setup_logging(config: dict[str, Any] | None = None) -> None:
         return
 
     if config is None:
-        config = get_default_logging_config()
-    else:
-        # Validate custom config has all required fields
-        _validate_custom_config(config)
+        raise LoggingConfigError("No logging configuration provided")
+
+    # Validate custom config has all required fields
+    _validate_custom_config(config)
 
     _apply_logging_config(config)
     _logging_configured = True
-
-
-def get_default_logging_config() -> dict[str, Any]:
-    """Get the default logging configuration.
-
-    Returns:
-        dict[str, Any]: Default logging configuration
-    """
-    return {
-        "level": "INFO",
-        "format": "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        "date_format": "%Y-%m-%d %H:%M:%S",
-        "handlers": {
-            "console": {"enabled": True, "level": "INFO"},
-            "file": {
-                "enabled": True,
-                "level": "DEBUG",
-                "filename": "quant_estate_{date}.log",
-                "date_format": "%Y-%m-%d",
-                "directory": "logs",
-            },
-        },
-    }
 
 
 def _validate_custom_config(config: dict[str, Any]) -> None:

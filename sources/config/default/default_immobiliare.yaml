@@ -18,6 +18,5 @@ immobiliare:
       base_path: "data/immobiliare"  # Base path for file storage
 
     mongodb:
-      database: "immobiliare"
       id_collection: "ids"
       listing_collection: "listings"
