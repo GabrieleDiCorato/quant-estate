@@ -3,77 +3,84 @@ Storage implementations for immobiliare.it data.
 """
 
 import logging
-from dataclasses import asdict
-from typing import Iterable, TypeVar, List
+from typing import Type, TypeVar
+from urllib.parse import quote_plus
 from collections.abc import Sequence
+from contextlib import contextmanager
 
 from pymongo import MongoClient
-from pymongo.write_concern import WriteConcern
+from pymongo.errors import DuplicateKeyError
 
-from sources.connectors.storage.abstract_storage import AbstractStorage
-from sources.datamodel.listing_details import ListingDetails
+from sources.connectors.storage.abstract_storage import Storage
 from ...datamodel.base_datamodel import QuantEstateDataObject
 from ...exceptions import StorageError
 
-logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=QuantEstateDataObject)
+logger = logging.getLogger(__name__)
 
-class MongoDBStorage[T](AbstractStorage[T]):
+class MongoDBStorage(Storage[T]):
     """MongoDB-based storage implementation."""
 
-    def __init__(self, connection_string: str, database: str, collection: str, **kwargs):
+    def __init__(self, data_type: Type[T], config: dict):
         """Initialize MongoDB storage.
         
         Args:
-            connection_string: MongoDB connection string template
-            database: Database name
-            collection: Collection name
-            **kwargs: Additional connection parameters (host, port, username, password, etc.)
+            data_type: The specific QuantEstateDataObject subclass to handle
+            config: Configuration dictionary with MongoDB connection parameters
         """
-        self.config = {
-            'connection_string': connection_string,
-            'database': database,
-            'collection': collection,
-            **kwargs
-        }
-        self._client = None
-        self._collection = None
+        self.data_type = data_type
+        self.config = config
 
         # Format the connection string with all parameters
-        from urllib.parse import quote_plus
-        formatted_connection = connection_string.format(
+        connection_string = self.config.get('connection_string', 'mongodb://{username}:{password}@{host}/{db_query}')
+        self.database = self.config.get('database', 'quant_estate')
+
+        self.formatted_connection = connection_string.format(
             username=quote_plus(self.config.get('username', '')),
             password=quote_plus(self.config.get('password', '')),
             host=self.config.get('host', 'localhost'),
             db_query=self.config.get('db_query', ''),
-            database=database
+            database=self.database
         )
-        self.config['connection_string'] = formatted_connection
 
-        logger.info("Initialized MongoDBStorage [%s] for %s.%s", 
-                        self.config['connection_string'], database, collection)
+        # Follow project naming convention: {source}_{data_type}
+        type_name = data_type.__name__.lower()
+        source_name = self.config.get('source', 'unknown')
+        self.collection_name = self.config.get('collection', f"{source_name}_{type_name}")
 
-    def _get_collection(self):
-        """Get MongoDB collection with proper write concern."""
-        if self._collection is None:
-            if self._client is None:
-                self._client = MongoClient(self.config['connection_string'])
-            db = self._client[self.config['database']]
-            self._collection = db[self.config['collection']].with_options(
-                write_concern=WriteConcern(w=1)
-            )
-        return self._collection
+        self._client = None
+        
+        # Test connection and log safely
+        self._test_connection()
+        logger.info("Initialized MongoDBStorage for %s.%s", self.database, self.collection_name)
+
+    def _test_connection(self) -> None:
+        """Test MongoDB connection without exposing credentials."""
+        try:
+            with self._get_client() as client:
+                client.admin.command('ping')
+        except Exception as e:
+            raise StorageError(f"Failed to connect to MongoDB: {e}")
+
+    @contextmanager
+    def _get_client(self):
+        """Context manager for MongoDB client with proper resource cleanup."""
+        client = MongoClient(self.formatted_connection)
+        try:
+            yield client
+        finally:
+            client.close()
 
     def append_data(self, data: Sequence[T]) -> bool:
         """Append data to storage.
-        
+
         Args:
-            data: List of RealEstate objects to append
-            
+            data: List of data objects to append
+
         Returns:
             bool: True if data was successfully appended
-            
+
         Raises:
             StorageError: If there's an error storing the data
         """
@@ -81,24 +88,34 @@ class MongoDBStorage[T](AbstractStorage[T]):
             logger.warning("No data to store")
             return False
 
-        logger.info("Storing %d real estate listings in MongoDB", len(data))
+        logger.info("Storing %d %s records", len(data), self.data_type.__name__)
+
         try:
-            collection = self._get_collection()
-
-            # Convert RealEstate objects to dictionaries
-            documents = [asdict(item) for item in data]
-
-            # Insert documents with write concern
-            result = collection.insert_many(documents)
-            logger.info("Successfully inserted %d documents into MongoDB", len(result.inserted_ids))
-            return True
-
+            with self._get_client() as client:
+                db = client[self.database]
+                collection = db[self.collection_name]
+                
+                # Convert each object to a dictionary and insert
+                documents = [item.model_dump() for item in data]
+                result = collection.insert_many(documents, ordered=False)
+                
+                logger.info("Successfully inserted %d documents into %s", 
+                           len(result.inserted_ids), self.collection_name)
+                return True
+                
+        except DuplicateKeyError as e:
+            logger.warning("Duplicate key error during insertion: %s", str(e))
+            return False
         except Exception as e:
-            logger.error("Failed to store data in MongoDB: %s", str(e), exc_info=True)
-            raise StorageError(f"Failed to store data in MongoDB: {e}")
+            logger.error("Failed to append to MongoDB: %s", str(e), exc_info=True)
+            raise StorageError(f"Failed to append to MongoDB: {e}")
 
-    def __del__(self):
-        """Clean up MongoDB connection."""
-        if self._client is not None:
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - cleanup resources."""
+        if self._client:
             self._client.close()
-            logger.debug("Closed MongoDB connection")
+            self._client = None

@@ -1,12 +1,12 @@
-from sources.datamodel.base_datamodel import QuantEstateDataObject
-
 from abc import ABC, abstractmethod
-from typing import TypeVar
 from collections.abc import Sequence
+from typing import TypeVar
+
+from sources.datamodel.base_datamodel import QuantEstateDataObject
 
 T = TypeVar("T", bound=QuantEstateDataObject)
 
-class AbstractStorage[T](ABC):
+class Storage[T](ABC):
     """Abstract base class for data storage implementations."""
 
     @abstractmethod
@@ -14,7 +14,7 @@ class AbstractStorage[T](ABC):
         """Append data to storage.
 
         Args:
-            data: List of RealEstate objects to append
+            data: List of data items to append
 
         Returns:
             bool: True if data was successfully appended
