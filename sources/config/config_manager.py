@@ -11,6 +11,11 @@ import yaml
 from ..exceptions import ConfigurationError
 from ..logging.logging_utils import setup_logging
 
+config_files = {
+    'logging': 'default_logging.yaml',
+    'scrapers': 'default_scrapers.yaml', 
+    'mongodb': 'mongodb.yaml'
+}
 
 class ConfigManager:
     """Manages project-wide and connector-specific configurations.
@@ -94,11 +99,6 @@ class ConfigManager:
     
     def _get_default_config_path(self, config_type: str) -> Path:
         """Get the path to a default configuration file."""
-        config_files = {
-            'logging': 'default_logging.yaml',
-            'scrapers': 'default_scrapers.yaml', 
-            'mongodb': 'mongodb.yaml'
-        }
         
         if config_type not in config_files:
             raise ConfigurationError(f"Unknown configuration type: {config_type}")

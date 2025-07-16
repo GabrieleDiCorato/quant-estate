@@ -1,5 +1,5 @@
+import logging
 from sources.exceptions import ConfigurationError, ScrapingError
-from sources.logging import get_class_logger
 from sources.datamodel.listing_details import ListingDetails
 
 import requests
@@ -7,6 +7,8 @@ import random
 import time
 from abc import ABC, abstractmethod
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class AbstractScraper(ABC):
@@ -27,9 +29,6 @@ class AbstractScraper(ABC):
             self.base_url = config['base_url']
             self.min_delay = config['request_settings']['min_delay']
             self.max_delay = config['request_settings']['max_delay']
-
-            # Initialize logger
-            self.logger = get_class_logger(self.__class__)
 
             # Initialize session for cookie handling
             self.session = requests.Session()
@@ -59,7 +58,7 @@ class AbstractScraper(ABC):
 
             # First visit the homepage to get cookies
             if not hasattr(self, '_initialized'):
-                self.logger.debug("Visiting homepage to initialize session...")
+                logger.debug("Visiting homepage to initialize session...")
                 self.session.get(self.base_url, headers=self.headers)
                 self._initialized = True
                 time.sleep(delay)  # Wait again before the actual request

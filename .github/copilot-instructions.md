@@ -3,8 +3,10 @@
 ## Project Context
 This is a real estate data management application written in Python 3.12 using:
 - **Database**: MongoDB for data storage
-- **Architecture**: Connector pattern with scrapers, storage implementations, and data models
-- **Key Libraries**: pymongo, requests, BeautifulSoup, pydantic/dataclasses
+- **Architecture**: Connector composed of a Scraper and a Storage layer
+- **Key Libraries**: pymongo, requests, BeautifulSoup, pydantic v2
+- **Package Manager**: uv (modern Python dependency management)
+- **Configuration**: YAML defaults
 
 ## Communication Style
 - Provide direct, factual responses without unnecessary apologies or agreements
@@ -65,3 +67,89 @@ This is a real estate data management application written in Python 3.12 using:
 
 ## Terminal Usage
 - Prefer PowerShell syntax (Windows environment)
+- Use `uv` for Python package management: `uv add package_name`
+- MongoDB operations through Python code, not CLI commands
+
+## Architecture Overview
+
+### 3-Tier Connector Pattern
+The application follows a clean 3-tier architecture:
+
+1. **Connector Layer** (`sources/connectors/base_connector.py`)
+   - Orchestrates the entire data pipeline
+   - Manages configuration and coordinates scraper/storage operations
+   - Handles high-level workflow logic
+
+2. **Scraper Layer** (`sources/connectors/base_scraper.py`)
+   - Implements data extraction logic for specific sources
+   - Handles HTTP requests, parsing, and data validation
+   - Converts raw data to structured `ListingDetails` objects
+
+3. **Storage Layer** (`sources/connectors/base_storage.py`)
+   - Manages data persistence operations
+   - Handles MongoDB connections and CRUD operations
+   - Implements data deduplication and validation
+
+### Data Flow
+```
+URL → Connector → Scraper → ListingDetails → Storage → MongoDB
+```
+
+### Key Components
+
+#### Data Models (`sources/datamodel/`)
+- **Base**: `QuantEstateDataObject` with Pydantic v2 configuration
+- **Core**: `ListingDetails` - comprehensive real estate property model
+- **Enumerations**: Type-safe enums for property types, contracts, conditions
+- **Identifiers**: `ListingId` for unique property identification
+
+#### Configuration System (`sources/config/`)
+- **Modern Pydantic**: Type-safe configuration with validation
+- **Dual Sources**: YAML defaults
+
+#### Current Implementations
+- **Immobiliare.it**: Complete scraper with JSON extraction from `__NEXT_DATA__`
+- **MongoDB Storage**: Full CRUD operations with connection pooling
+- **Request Handling**: Configurable delays and user agent rotation
+
+### Exception Hierarchy
+- `ConnectorError` → `ScrapingError`, `StorageError`, `ConfigurationError`
+- Source-specific: `ImmobiliareError` with validation extensions
+- Comprehensive error handling throughout the pipeline
+
+## Project-Specific Conventions
+
+### Configuration Management
+- **Primary**: Use `sources/config/pydantic_config_manager.py` for all configuration
+- **Models**: Configuration classes in `sources/config/settings.py`
+- **YAML Structure**: Maintain hierarchical structure in default config files
+
+### Data Model Design
+- **Inheritance**: All models inherit from `QuantEstateDataObject`
+- **Validation**: Use Pydantic v2 field validation with descriptive error messages
+- **Enums**: Create type-safe enums in `enumerations.py` with `BaseEnum` inheritance
+- **Immutability**: Data models are frozen by default (`frozen=True`)
+
+### Connector Implementation
+- **Base Classes**: Always inherit from `AbstractConnector`, `AbstractScraper`, `AbstractStorage`
+- **Error Handling**: Use specific exception types from `sources/exceptions.py`
+- **Logging**: Module-level loggers with structured logging
+- **Configuration**: Source-specific config in YAML with type validation
+
+### MongoDB Integration
+- **Connection**: Use connection pooling through storage layer
+- **Collections**: Follow naming convention `{source}_{data_type}` (e.g., `immobiliare_listings`)
+- **Indexes**: Create appropriate indexes for query performance
+- **Deduplication**: Implement based on `ListingId` uniqueness
+
+### Request Handling
+- **Delays**: Configurable request delays to respect rate limits
+- **User Agents**: Rotate user agents for scraping resilience
+- **Error Recovery**: Implement retry logic for transient failures
+- **Validation**: Validate all extracted data before storage
+
+### Development Workflow
+- **Dependencies**: Use `uv` for all package management operations
+- **Testing**: Write tests for each component layer independently. Put tests in `tests/` directory
+- **Documentation**: Update relevant `.md` files when adding features
+- **Logging**: Use structured logging with appropriate levels

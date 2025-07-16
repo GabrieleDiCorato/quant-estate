@@ -5,14 +5,6 @@ description = "Real estate data collection and analysis toolkit"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "BSL-1.0"}
-authors = [
-    {name = "Gabriele Di Corato"},
-    {name = "Massimiliano Del Forno"},
-    {name = "Benedetta Ferri"},
-    {name = "Chiara Giromini"},
-    {name = "Andrea Pivotto"},
-    {name = "Alessandro Valente"}
-]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -32,6 +24,7 @@ dependencies = [
     "requests>=2.31.0",
     "pyyaml>=6.0.1",
     "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
 ]
 
 [project.optional-dependencies]

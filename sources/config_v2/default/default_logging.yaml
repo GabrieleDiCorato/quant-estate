@@ -1,0 +1,42 @@
+# Logging configuration for the quant-estate project
+
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  # Default logging format
+  default:
+    class: "logging.Formatter"
+    format: '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+    
+handlers:
+  # Console handler for outputting logs to the console
+  console:
+    class: "logging.StreamHandler"
+    level: DEBUG
+    formatter: default
+    stream: ext://sys.stdout
+
+  # File handler for writing logs to a file
+  file:
+    class: "logging.handlers.TimedRotatingFileHandler"
+    level: DEBUG
+    formatter: default
+    filename: 'logs/quant_estate_{timestamp}.log'
+    when: 'midnight'  # Rotate at midnight
+    interval: 1  # Every 1 day
+    backupCount: 30  # Keep 30 days of logs
+    encoding: 'utf-8'
+
+loggers:
+  # Root logger configuration
+  root:
+    level: DEBUG
+    handlers: [console, file]
+
+  # Module-specific logger configurations
+  sources:
+    level: DEBUG
+    handlers: [console, file]
+    propagate: false

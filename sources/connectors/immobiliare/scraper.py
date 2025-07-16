@@ -2,6 +2,7 @@
 Scraper implementation for immobiliare.it.
 """
 
+import logging
 import re
 import time
 from typing import List, Dict, Any, Optional
@@ -17,7 +18,8 @@ from ...exceptions import (
     InvalidURLError, DataExtractionError, RequestError
 )
 from ...datamodel.listing_details import ListingDetails
-from ...logging.logging import get_class_logger
+
+logger = logging.getLogger(__name__)
 
 class ImmobiliareScraper(AbstractScraper):
     """Scraper implementation for immobiliare.it."""
@@ -32,8 +34,7 @@ class ImmobiliareScraper(AbstractScraper):
             ConfigurationError: If required configuration keys are missing
         """
         super().__init__(config)
-        self.logger = get_class_logger(self.__class__)
-        self.logger.info("Initialized ImmobiliareScraper with base URL: %s", self.base_url)
+        logger.info("Initialized ImmobiliareScraper with base URL: %s", self.base_url)
 
     def validate_url(self, url: str) -> None:
         """Validate that the URL is appropriate for immobiliare.it.
@@ -44,19 +45,19 @@ class ImmobiliareScraper(AbstractScraper):
         Raises:
             ValidationError: If the URL is invalid
         """
-        self.logger.debug("Validating URL: %s", url)
+        logger.debug("Validating URL: %s", url)
         if not self.base_url in url:
-            self.logger.error("Invalid URL: missing base URL %s", self.base_url)
+            logger.error("Invalid URL: missing base URL %s", self.base_url)
             raise ValidationError(f"Given URL must include '{self.base_url}'")
 
         if "mapCenter" in url:
-            self.logger.error("Invalid URL: contains 'mapCenter' which uses a different API")
+            logger.error("Invalid URL: contains 'mapCenter' which uses a different API")
             raise ValidationError("Given URL must not include 'mapCenter' as it uses another API to retrieve data")
 
         if "search-list" in url:
-            self.logger.error("Invalid URL: contains 'search-list' which uses a different API")
+            logger.error("Invalid URL: contains 'search-list' which uses a different API")
             raise ValidationError("Given URL must not include 'search-list' as it uses another API to retrieve data")
-        self.logger.debug("URL validation successful")
+        logger.debug("URL validation successful")
 
     def get_full_description(self, property_id: str) -> str:
         """Fetch the full description from the property detail page.
@@ -73,7 +74,7 @@ class ImmobiliareScraper(AbstractScraper):
         try:
             # Construct the detail page URL
             detail_url = f"{self.base_url}/annunci/{property_id}"
-            self.logger.debug("Fetching full description from: %s", detail_url)
+            logger.debug("Fetching full description from: %s", detail_url)
 
             # Add a small delay before the request
             time.sleep(random.uniform(1, 2))
@@ -86,15 +87,15 @@ class ImmobiliareScraper(AbstractScraper):
             description_elem = soup.find("div", {"class": "description"})
             if description_elem:
                 full_description = description_elem.get_text(strip=True)
-                self.logger.debug("Found full description for property %s: %s", 
+                logger.debug("Found full description for property %s: %s", 
                                 property_id, full_description[:100] + "..." if len(full_description) > 100 else full_description)
                 return full_description
 
-            self.logger.warning("Could not find description element for property %s", property_id)
+            logger.warning("Could not find description element for property %s", property_id)
             return ""
 
         except Exception as e:
-            self.logger.error("Error fetching full description for property %s: %s", 
+            logger.error("Error fetching full description for property %s: %s", 
                             property_id, str(e), exc_info=True)
             return ""
 
@@ -110,13 +111,13 @@ class ImmobiliareScraper(AbstractScraper):
         Raises:
             ScrapingError: If there's an error extracting data
         """
-        self.logger.debug("Extracting data from response (status code: %d)", response.status_code)
+        logger.debug("Extracting data from response (status code: %d)", response.status_code)
         try:
             soup = BeautifulSoup(response.text, 'html.parser')
             script_tag = soup.find("script", {"id": "__NEXT_DATA__"})
 
             if not script_tag:
-                self.logger.error("Failed to find __NEXT_DATA__ script tag in response")
+                logger.error("Failed to find __NEXT_DATA__ script tag in response")
                 raise ScrapingError("Could not find __NEXT_DATA__ script tag")
 
             json_data = script_tag.text
@@ -137,21 +138,21 @@ class ImmobiliareScraper(AbstractScraper):
                     # Process description data
                     properties = record["realEstate"]["properties"][0]
                     raw_description = properties.get("description")
-                    self.logger.debug(f"Raw description for property {record["realEstate"]["id"]}: {raw_description}")
+                    logger.debug(f"Raw description for property {record["realEstate"]["id"]}: {raw_description}")
 
                     # Convert to RealEstate object
                     try:
                         real_estate = self.placeholder(record)
                         real_estates.append(real_estate)
                     except Exception as e:
-                        self.logger.warning("Failed to convert record to RealEstate object: %s", str(e))
+                        logger.warning("Failed to convert record to RealEstate object: %s", str(e))
                         continue
 
-            self.logger.info("Successfully extracted %d real estate listings", len(real_estates))
+            logger.info("Successfully extracted %d real estate listings", len(real_estates))
             return real_estates
 
         except (json.JSONDecodeError, KeyError, AttributeError) as e:
-            self.logger.error("Failed to extract JSON data: %s", str(e), exc_info=True)
+            logger.error("Failed to extract JSON data: %s", str(e), exc_info=True)
             raise ScrapingError(f"Failed to extract JSON data: {e}")
 
     def placeholder(self, data) -> ListingDetails:
@@ -209,7 +210,7 @@ class ImmobiliareScraper(AbstractScraper):
         Raises:
             ValidationError: If the generated URL is invalid
         """
-        self.logger.debug("Generating URL for page %d", page_number)
+        logger.debug("Generating URL for page %d", page_number)
         try:
             parsed_url = urlparse(current_url)
             query_params = parse_qs(parsed_url.query)
@@ -223,10 +224,10 @@ class ImmobiliareScraper(AbstractScraper):
                 urlencode(query_params, doseq=True),
                 parsed_url.fragment
             ))
-            self.logger.debug("Generated next page URL: %s", next_url)
+            logger.debug("Generated next page URL: %s", next_url)
             return next_url
         except Exception as e:
-            self.logger.error("Failed to generate next page URL: %s", str(e), exc_info=True)
+            logger.error("Failed to generate next page URL: %s", str(e), exc_info=True)
             raise ValidationError(f"Failed to generate next page URL: {e}")
 
     def scrape_page(self, url: str) -> List[ListingDetails]:
@@ -241,12 +242,12 @@ class ImmobiliareScraper(AbstractScraper):
         Raises:
             ScrapingError: If there's an error during scraping
         """
-        self.logger.info("Scraping page: %s", url)
+        logger.info("Scraping page: %s", url)
         try:
             response = self.get_page(url)
             return self.extract_data(response)
         except Exception as e:
-            self.logger.error("Failed to scrape page %s: %s", url, str(e), exc_info=True)
+            logger.error("Failed to scrape page %s: %s", url, str(e), exc_info=True)
             raise ScrapingError(f"Failed to scrape page: {e}")
 
     def scrape_all_pages(self, start_url: str, max_pages: Optional[int] = None) -> List[ListingDetails]:
@@ -262,7 +263,7 @@ class ImmobiliareScraper(AbstractScraper):
         Raises:
             ScrapingError: If there's an error during scraping
         """
-        self.logger.info("Starting to scrape all pages from: %s (max pages: %s)", 
+        logger.info("Starting to scrape all pages from: %s (max pages: %s)", 
                         start_url, 
                         str(max_pages) if max_pages else "unlimited")
 
@@ -273,30 +274,30 @@ class ImmobiliareScraper(AbstractScraper):
         while current_url and (max_pages is None or page_count < max_pages):
             try:
                 page_count += 1
-                self.logger.info("Scraping page %d: %s", page_count, current_url)
+                logger.info("Scraping page %d: %s", page_count, current_url)
 
                 page_listings = self.scrape_page(current_url)
 
                 if not page_listings:
-                    self.logger.warning("No listings found on page %d", page_count)
+                    logger.warning("No listings found on page %d", page_count)
                     break
 
                 all_listings.extend(page_listings)
-                self.logger.info("Total listings collected so far: %d", len(all_listings))
+                logger.info("Total listings collected so far: %d", len(all_listings))
 
                 # Get the next page URL
                 page_count += 1
                 current_url = self.get_page_url(current_url, page_count)
 
                 if current_url:
-                    self.logger.debug("Waiting before next page request...")
+                    logger.debug("Waiting before next page request...")
                     time.sleep(random.uniform(self.min_delay, self.max_delay))
 
             except Exception as e:
-                self.logger.error("Error scraping page %d: %s", page_count, str(e), exc_info=True)
+                logger.error("Error scraping page %d: %s", page_count, str(e), exc_info=True)
                 raise ScrapingError(f"Failed to scrape page {page_count}: {e}")
 
-        self.logger.info("Finished scraping. Total pages scraped: %d, Total listings: %d", 
+        logger.info("Finished scraping. Total pages scraped: %d, Total listings: %d", 
                         page_count, 
                         len(all_listings))
         return all_listings 

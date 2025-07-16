@@ -2,6 +2,7 @@
 Immobiliare.it connector implementation.
 """
 
+import logging
 from typing import List, Dict, Any, Optional
 
 from ..storage.file_storage import FileStorage
@@ -12,7 +13,8 @@ from ...config import ConfigManager
 from ...datamodel.listing_details import ListingDetails
 from .scraper import ImmobiliareScraper
 from ..storage.mongo_storage import MongoDBStorage
-from ...logging.logging import get_module_logger, get_class_logger, setup_logging
+
+logger = logging.getLogger(__name__)
 
 class ImmobiliareConnector(AbstractConnector):
     """Connector implementation for immobiliare.it."""
@@ -20,10 +22,7 @@ class ImmobiliareConnector(AbstractConnector):
     def __init__(self, config_manager: ConfigManager):
         """Initialize the connector with configuration."""
         try:
-            # Set up project-wide logging
-            setup_logging(config_manager.get_logging_config())
-            self.logger = get_class_logger(self.__class__)
-            self.logger.info("Initializing ImmobiliareConnector")
+            logger.info("Initializing ImmobiliareConnector")
 
             # Initialize components
             scraper = ImmobiliareScraper(config_manager.get_connector_config('immobiliare'))

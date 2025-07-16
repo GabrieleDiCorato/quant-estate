@@ -1,0 +1,30 @@
+# MongoDB connection settings
+mongodb:
+  # Connection settings
+  connection_string: "mongodb+srv://{username}:{password}@{host}:{port}/{database}"
+  host: ""
+  # Port is not needed in srv connections
+  #port: 27017
+  db_query: ""
+  database: ""
+  collection: ""
+  
+  # Authentication settings
+  username: ""  # Set your MongoDB username
+  password: ""  # Set your MongoDB password
+  auth_source: "admin"  # The database to authenticate against
+  auth_mechanism: "SCRAM-SHA-256"  # Authentication mechanism
+  
+  # Security settings
+  ssl: false  # Set to true if using SSL/TLS
+  replica_set: null  # Set if using replica set
+  
+  # Connection pool settings
+  max_pool_size: 100
+  min_pool_size: 0
+  max_idle_time_ms: 60000
+  
+  # Write concern settings
+  write_concern:
+    w: 1  # Write acknowledgment level
+    wtimeout: 5000  # Write timeout in milliseconds
