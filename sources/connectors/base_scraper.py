@@ -1,5 +1,5 @@
 from sources.exceptions import ConfigurationError, ScrapingError
-from sources.logging_utils import get_class_logger
+from sources.logging import get_class_logger
 from sources.datamodel.listing_details import ListingDetails
 
 import requests

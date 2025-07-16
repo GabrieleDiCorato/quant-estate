@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 from typing import Any
+from collections.abc import Mapping
 
 # Global flag to prevent multiple configurations
 _logging_configured = False
@@ -20,7 +21,7 @@ class LoggingConfigError(Exception):
     pass
 
 
-def setup_logging(config: dict[str, Any] | None = None) -> None:
+def setup_logging(config: Mapping[str, Any]) -> None:
     """Setup logging configuration globally (call once at startup).
     
     Args:
@@ -38,13 +39,13 @@ def setup_logging(config: dict[str, Any] | None = None) -> None:
         raise LoggingConfigError("No logging configuration provided")
 
     # Validate custom config has all required fields
-    _validate_custom_config(config)
+    _validate_config(config)
 
     _apply_logging_config(config)
     _logging_configured = True
 
 
-def _validate_custom_config(config: dict[str, Any]) -> None:
+def _validate_config(config: Mapping[str, Any]) -> None:
     """Validate that custom config has all required fields.
     
     Args:
@@ -54,30 +55,30 @@ def _validate_custom_config(config: dict[str, Any]) -> None:
         LoggingConfigError: If required fields are missing
     """
     required_fields = ["level", "format", "date_format", "handlers"]
-    
+
     for field in required_fields:
         if field not in config:
             raise LoggingConfigError(f"Required field '{field}' missing from custom logging config")
-    
+
     # Validate handlers structure
     if not isinstance(config["handlers"], dict):
         raise LoggingConfigError("'handlers' must be a dictionary")
-    
+
     # Check if at least one handler is configured
     if not config["handlers"]:
         raise LoggingConfigError("At least one handler must be configured")
-    
+
     # Validate each handler configuration
     for handler_name, handler_config in config["handlers"].items():
         if not isinstance(handler_config, dict):
             raise LoggingConfigError(f"Handler '{handler_name}' config must be a dictionary")
-        
+
         if "enabled" not in handler_config:
             raise LoggingConfigError(f"Handler '{handler_name}' missing required 'enabled' field")
-        
+
         if "level" not in handler_config:
             raise LoggingConfigError(f"Handler '{handler_name}' missing required 'level' field")
-        
+
         # Validate file handler specific fields
         if handler_name == "file" and handler_config.get("enabled", False):
             file_required = ["filename", "directory"]
@@ -86,7 +87,7 @@ def _validate_custom_config(config: dict[str, Any]) -> None:
                     raise LoggingConfigError(f"File handler missing required field '{field}'")
 
 
-def _apply_logging_config(log_config: dict[str, Any]) -> None:
+def _apply_logging_config(log_config: Mapping[str, Any]) -> None:
     """Apply the logging configuration to the root logger.
     
     Args:
@@ -128,9 +129,9 @@ def _apply_logging_config(log_config: dict[str, Any]) -> None:
 
 
 def _add_console_handler(
-    logger: logging.Logger, 
-    formatter: logging.Formatter, 
-    console_config: dict[str, Any]
+    logger: logging.Logger,
+    formatter: logging.Formatter,
+    console_config: Mapping[str, Any],
 ) -> None:
     """Add console handler to the logger.
     
@@ -156,9 +157,7 @@ def _add_console_handler(
 
 
 def _add_file_handler(
-    logger: logging.Logger, 
-    formatter: logging.Formatter,
-    file_config: dict[str, Any]
+    logger: logging.Logger, formatter: logging.Formatter, file_config: Mapping[str, Any]
 ) -> None:
     """Add file handler to the logger.
     

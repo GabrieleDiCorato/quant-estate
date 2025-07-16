@@ -4,13 +4,15 @@ Immobiliare.it connector implementation.
 
 from typing import List, Dict, Any, Optional
 
+from ..storage.file_storage import FileStorage
+
 from ..base_connector import AbstractConnector
 from ...exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 from ...config import ConfigManager
 from ...datamodel.listing_details import ListingDetails
 from .scraper import ImmobiliareScraper
-from .storage import FileStorage, MongoDBStorage
-from ...logging_utils.logging import get_module_logger, get_class_logger, setup_logging
+from ..storage.mongo_storage import MongoDBStorage
+from ...logging.logging import get_module_logger, get_class_logger, setup_logging
 
 class ImmobiliareConnector(AbstractConnector):
     """Connector implementation for immobiliare.it."""

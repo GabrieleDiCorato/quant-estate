@@ -17,7 +17,7 @@ from ...exceptions import (
     InvalidURLError, DataExtractionError, RequestError
 )
 from ...datamodel.listing_details import ListingDetails
-from ...logging_utils.logging import get_class_logger
+from ...logging.logging import get_class_logger
 
 class ImmobiliareScraper(AbstractScraper):
     """Scraper implementation for immobiliare.it."""

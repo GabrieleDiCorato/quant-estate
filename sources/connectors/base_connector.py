@@ -4,7 +4,7 @@ Base classes for real estate data connectors.
 
 from requests import Response
 
-from sources.logging_utils.logging_mixin import LoggingMixin
+from sources.logging.logging_mixin import LoggingMixin
 from sources.connectors.base_scraper import AbstractScraper
 from sources.connectors.base_storage import AbstractStorage
 from ..exceptions import ScrapingError, StorageError, ValidationError

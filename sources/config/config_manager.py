@@ -7,7 +7,7 @@ from pathlib import Path
 from types import MappingProxyType
 from collections.abc import Mapping, MappingView
 from typing import Any
-from ..logging_utils.logging_mixin import LoggingMixin
+from ..logging.logging_mixin import LoggingMixin
 from ..datamodel.enumerations import Source
 
 from ..exceptions import ConfigurationError

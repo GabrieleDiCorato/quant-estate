@@ -13,10 +13,16 @@ immobiliare:
   # Storage settings
   storage_settings:
     type: "mongodb"  # Storage type: "file" or "mongodb"
+    
     file:
       # File storage settings
       base_path: "data/immobiliare"  # Base path for file storage
 
     mongodb:
+    # MongoDB settings (only if storage_settings.type = mongodb)
       id_collection: "ids"
       listing_collection: "listings"
+
+# casa:
+
+# idealista:
