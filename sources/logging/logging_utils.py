@@ -1,16 +1,16 @@
 """
 Logging utilities for the quant-estate project.
-Configure logging once at application startup.
+Configure logging once at application startup using standard Python logging configuration.
 """
 
 from __future__ import annotations
 
 import logging
-import sys
+import logging.config
+import yaml
 from pathlib import Path
 from datetime import datetime
 from typing import Any
-from collections.abc import Mapping
 
 # Global flag to prevent multiple configurations
 _logging_configured = False
@@ -21,178 +21,63 @@ class LoggingConfigError(Exception):
     pass
 
 
-def setup_logging(config: Mapping[str, Any]) -> None:
+def setup_logging(config_path: str | Path | None = None) -> None:
     """Setup logging configuration globally (call once at startup).
     
     Args:
-        config: Optional logging configuration dict. If None, uses default config.
+        config_path: Path to YAML logging configuration file. 
+                    If None, uses default configuration.
         
     Raises:
-        LoggingConfigError: If custom config is provided but missing required fields.
+        LoggingConfigError: If configuration file is invalid or missing.
     """
     global _logging_configured
 
     if _logging_configured:
         return
 
-    if config is None:
-        raise LoggingConfigError("No logging configuration provided")
+    if config_path is None:
+        config_path = Path(__file__).parent.parent / 'config' / 'default' / 'default_logging.yaml'
+    else:
+        config_path = Path(config_path)
 
-    # Validate custom config has all required fields
-    _validate_config(config)
+    if not config_path.exists():
+        raise LoggingConfigError(f"Logging configuration file not found: {config_path}")
 
-    _apply_logging_config(config)
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise LoggingConfigError(f"Invalid YAML in logging configuration: {e}")
+    except Exception as e:
+        raise LoggingConfigError(f"Error reading logging configuration: {e}")
+
+    # Add timestamp to filename if file handler exists
+    if 'handlers' in config and 'file' in config['handlers']:
+        _add_timestamp_to_filename(config['handlers']['file'])
+
+    try:
+        logging.config.dictConfig(config)
+    except Exception as e:
+        raise LoggingConfigError(f"Error applying logging configuration: {e}")
+
     _logging_configured = True
 
 
-def _validate_config(config: Mapping[str, Any]) -> None:
-    """Validate that custom config has all required fields.
+def _add_timestamp_to_filename(file_handler_config: dict[str, Any]) -> None:
+    """Add timestamp to log filename if it contains a placeholder.
     
     Args:
-        config: Custom logging configuration
-        
-    Raises:
-        LoggingConfigError: If required fields are missing
+        file_handler_config: File handler configuration dictionary
     """
-    required_fields = ["level", "format", "date_format", "handlers"]
-
-    for field in required_fields:
-        if field not in config:
-            raise LoggingConfigError(f"Required field '{field}' missing from custom logging config")
-
-    # Validate handlers structure
-    if not isinstance(config["handlers"], dict):
-        raise LoggingConfigError("'handlers' must be a dictionary")
-
-    # Check if at least one handler is configured
-    if not config["handlers"]:
-        raise LoggingConfigError("At least one handler must be configured")
-
-    # Validate each handler configuration
-    for handler_name, handler_config in config["handlers"].items():
-        if not isinstance(handler_config, dict):
-            raise LoggingConfigError(f"Handler '{handler_name}' config must be a dictionary")
-
-        if "enabled" not in handler_config:
-            raise LoggingConfigError(f"Handler '{handler_name}' missing required 'enabled' field")
-
-        if "level" not in handler_config:
-            raise LoggingConfigError(f"Handler '{handler_name}' missing required 'level' field")
-
-        # Validate file handler specific fields
-        if handler_name == "file" and handler_config.get("enabled", False):
-            file_required = ["filename", "directory"]
-            for field in file_required:
-                if field not in handler_config:
-                    raise LoggingConfigError(f"File handler missing required field '{field}'")
-
-
-def _apply_logging_config(log_config: Mapping[str, Any]) -> None:
-    """Apply the logging configuration to the root logger.
+    filename = file_handler_config.get('filename', '')
+    if '{timestamp}' in filename:
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        file_handler_config['filename'] = filename.format(timestamp=timestamp)
     
-    Args:
-        log_config: Dictionary containing logging configuration
-        
-    Raises:
-        LoggingConfigError: If config values are invalid
-    """
-    try:
-        # Get logging settings - no defaults when using custom config
-        log_level = getattr(logging, log_config["level"].upper())
-        log_format = log_config["format"]
-        date_format = log_config["date_format"]
-    except AttributeError as e:
-        raise LoggingConfigError(f"Invalid logging level '{log_config['level']}': {e}")
-    except KeyError as e:
-        raise LoggingConfigError(f"Missing required config field: {e}")
-
-    # Create formatter
-    formatter = logging.Formatter(log_format, date_format)
-
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
-
-    # Remove existing handlers to avoid duplicates
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
-
-    # Add console handler if enabled
-    console_config = log_config["handlers"].get("console", {})
-    if console_config.get("enabled", False):
-        _add_console_handler(root_logger, formatter, console_config)
-
-    # Add file handler if enabled
-    file_config = log_config["handlers"].get("file", {})
-    if file_config.get("enabled", False):
-        _add_file_handler(root_logger, formatter, file_config)
-
-
-def _add_console_handler(
-    logger: logging.Logger,
-    formatter: logging.Formatter,
-    console_config: Mapping[str, Any],
-) -> None:
-    """Add console handler to the logger.
-    
-    Args:
-        logger: The logger to add the handler to
-        formatter: The formatter to use
-        console_config: Console handler configuration
-        
-    Raises:
-        LoggingConfigError: If console config is invalid
-    """
-    try:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
-        console_handler.setLevel(
-            getattr(logging, console_config["level"].upper())
-        )
-        logger.addHandler(console_handler)
-    except KeyError as e:
-        raise LoggingConfigError(f"Console handler missing required field: {e}")
-    except AttributeError as e:
-        raise LoggingConfigError(f"Invalid console handler level '{console_config['level']}': {e}")
-
-
-def _add_file_handler(
-    logger: logging.Logger, formatter: logging.Formatter, file_config: Mapping[str, Any]
-) -> None:
-    """Add file handler to the logger.
-    
-    Args:
-        logger: The logger to add the handler to
-        formatter: The formatter to use
-        file_config: File handler configuration
-        
-    Raises:
-        LoggingConfigError: If file config is invalid
-    """
-    try:
-        # Create logs directory
-        project_root = Path(__file__).parent.parent.parent
-        logs_dir = project_root / file_config["directory"]
-        logs_dir.mkdir(exist_ok=True)
-
-        # Create log file with date
-        date_str = datetime.now().strftime(file_config.get("date_format", "%Y-%m-%d"))
-        filename = file_config["filename"].format(date=date_str)
-        log_file = logs_dir / filename
-
-        file_handler = logging.FileHandler(log_file, encoding="utf-8")
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(
-            getattr(logging, file_config["level"].upper())
-        )
-        logger.addHandler(file_handler)
-    except KeyError as e:
-        raise LoggingConfigError(f"File handler missing required field: {e}")
-    except AttributeError as e:
-        raise LoggingConfigError(f"Invalid file handler level '{file_config['level']}': {e}")
-    except Exception as e:
-        raise LoggingConfigError(f"Error creating file handler: {e}")
-
+    # Ensure log directory exists
+    log_path = Path(file_handler_config['filename'])
+    log_path.parent.mkdir(parents=True, exist_ok=True)
 
 def get_logger(name: str) -> logging.Logger:
     """Get a logger instance with the specified name.
@@ -204,6 +89,21 @@ def get_logger(name: str) -> logging.Logger:
         logging.Logger: Logger instance
     """
     return logging.getLogger(name)
+
+
+def get_module_logger() -> logging.Logger:
+    """Get a logger for the calling module.
+    
+    Returns:
+        logging.Logger: Logger instance named after the calling module
+    """
+    import inspect
+    frame = inspect.currentframe()
+    if frame and frame.f_back:
+        module_name = frame.f_back.f_globals.get('__name__', 'unknown')
+    else:
+        module_name = 'unknown'
+    return logging.getLogger(module_name)
 
 
 def get_class_logger(cls: type) -> logging.Logger:

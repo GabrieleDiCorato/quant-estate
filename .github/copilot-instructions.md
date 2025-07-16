@@ -61,6 +61,7 @@ This is a real estate data management application written in Python 3.12 using:
 - Include concise docstrings for classes and functions
 - Add inline comments only when code intent isn't clear
 - Avoid emojis and exclamation marks in all code and comments
+- Comments start with a capital letter and do not end with a period
 
 ## Terminal Usage
 - Prefer PowerShell syntax (Windows environment)

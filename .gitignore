@@ -172,8 +172,8 @@ cython_debug/
 
 # Project-specific
 # MongoDB configuration
-sources/config/connectors/*/mongodb.yaml
-sources/connectors/*/config/*.local.yaml
+sources/config/*/mongodb.yaml
+sources/config/*/*.local.yaml
 
 # Data directory
 data/
