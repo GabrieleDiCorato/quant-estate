@@ -6,8 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Type, TypeVar
 
+from sources.config.model.storage_settings import CsvStorageSettings
 from sources.connectors.storage.abstract_storage import Storage
-from sources.datamodel.listing_details import ListingDetails
 from sources.exceptions import StorageError
 from sources.datamodel.base_datamodel import QuantEstateDataObject
 
@@ -18,14 +18,14 @@ logger = logging.getLogger(__name__)
 class FileStorage(Storage[T]):
     """File-based storage implementation using CSV files."""
 
-    def __init__(self, base_path: str, data_type: Type[T]):
+    def __init__(self, data_type: Type[T], config: CsvStorageSettings):
         """Initialize file storage.
 
         Args:
             base_path: Directory where files will be stored
             data_type: The specific QuantEstateDataObject subclass to handle
         """
-        self.base_path = Path(base_path)
+        self.base_path = config.base_path
         self.data_type = data_type
 
         # Create session timestamp for file naming

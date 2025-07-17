@@ -11,7 +11,9 @@ from contextlib import contextmanager
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
+from sources.config.model.storage_settings import MongoStorageSettings
 from sources.connectors.storage.abstract_storage import Storage
+from sources.datamodel.listing_details import ListingDetails
 from ...datamodel.base_datamodel import QuantEstateDataObject
 from ...exceptions import StorageError
 
@@ -22,38 +24,25 @@ logger = logging.getLogger(__name__)
 class MongoDBStorage(Storage[T]):
     """MongoDB-based storage implementation."""
 
-    def __init__(self, data_type: Type[T], config: dict):
+    def __init__(self, data_type: Type[T], config: MongoStorageSettings):
         """Initialize MongoDB storage.
         
         Args:
             data_type: The specific QuantEstateDataObject subclass to handle
-            config: Configuration dictionary with MongoDB connection parameters
+            config: Configuration with MongoDB connection parameters
         """
         self.data_type = data_type
         self.config = config
 
         # Format the connection string with all parameters
-        connection_string = self.config.get('connection_string', 'mongodb://{username}:{password}@{host}/{db_query}')
-        self.database = self.config.get('database', 'quant_estate')
-
-        self.formatted_connection = connection_string.format(
-            username=quote_plus(self.config.get('username', '')),
-            password=quote_plus(self.config.get('password', '')),
-            host=self.config.get('host', 'localhost'),
-            db_query=self.config.get('db_query', ''),
-            database=self.database
-        )
-
-        # Follow project naming convention: {source}_{data_type}
-        type_name = data_type.__name__.lower()
-        source_name = self.config.get('source', 'unknown')
-        self.collection_name = self.config.get('collection', f"{source_name}_{type_name}")
+        self.connection_string = self.config.connection_string
+        self.database = self.config.database
 
         self._client = None
-        
+
         # Test connection and log safely
         self._test_connection()
-        logger.info("Initialized MongoDBStorage for %s.%s", self.database, self.collection_name)
+        logger.info("Initialized MongoDBStorage connection to [%s]", self.database)
 
     def _test_connection(self) -> None:
         """Test MongoDB connection without exposing credentials."""
@@ -66,7 +55,7 @@ class MongoDBStorage(Storage[T]):
     @contextmanager
     def _get_client(self):
         """Context manager for MongoDB client with proper resource cleanup."""
-        client = MongoClient(self.formatted_connection)
+        client = MongoClient(self.config.connection_string.get_secret_value())
         try:
             yield client
         finally:
@@ -93,16 +82,20 @@ class MongoDBStorage(Storage[T]):
         try:
             with self._get_client() as client:
                 db = client[self.database]
-                collection = db[self.collection_name]
-                
+                collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
+                db_collection = db[collection_str]
+
                 # Convert each object to a dictionary and insert
                 documents = [item.model_dump() for item in data]
-                result = collection.insert_many(documents, ordered=False)
-                
-                logger.info("Successfully inserted %d documents into %s", 
-                           len(result.inserted_ids), self.collection_name)
+                result = db_collection.insert_many(documents, ordered=False)
+
+                logger.info(
+                    "Successfully inserted %d documents into collection: [%s]",
+                    len(result.inserted_ids),
+                    collection_str,
+                )
                 return True
-                
+
         except DuplicateKeyError as e:
             logger.warning("Duplicate key error during insertion: %s", str(e))
             return False
