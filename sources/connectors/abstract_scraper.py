@@ -11,7 +11,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-class AbstractScraper(ABC):
+class Scraper(ABC):
     """Abstract base class for web scrapers."""
 
     def __init__(self, config: dict[str, Any]):

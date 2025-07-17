@@ -3,7 +3,7 @@ Immobiliare.it web scraper package
 """
 
 from ..storage.file_storage import FileStorage
-from ..storage.abstract_storage import AbstractStorage
+from ..storage.abstract_storage import Storage
 from .scraper import ImmobiliareScraper
 from .connector import ImmobiliareConnector
 from ..storage.mongo_storage import MongoDBStorage
@@ -22,7 +22,7 @@ __all__ = [
     'ImmobiliareConnector',
     'FileStorage',
     'MongoDBStorage',
-    'AbstractStorage',
+    'Storage',
     'ListingDetails',
     'ScrapingError',
     'StorageError',

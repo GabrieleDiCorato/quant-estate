@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 
 from ..storage.file_storage import FileStorage
 
-from ..base_connector import AbstractConnector
+from ..connector import Connector
 from ...exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
 from ...config import ConfigManager
 from ...datamodel.listing_details import ListingDetails
@@ -16,7 +16,7 @@ from ..storage.mongo_storage import MongoDBStorage
 
 logger = logging.getLogger(__name__)
 
-class ImmobiliareConnector(AbstractConnector):
+class ImmobiliareConnector(Connector):
     """Connector implementation for immobiliare.it."""
 
     def __init__(self, config_manager: ConfigManager):

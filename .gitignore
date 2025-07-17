@@ -177,3 +177,4 @@ sources/config/*/*.local.yaml
 
 # Data directory
 data/
+sources/resources/storage.dev.env

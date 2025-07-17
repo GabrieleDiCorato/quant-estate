@@ -37,7 +37,7 @@ def setup_logging(config_path: str | Path | None = None) -> None:
         return
 
     if config_path is None:
-        config_path = Path(__file__).parent.parent / 'config' / 'default' / 'default_logging.yaml'
+        config_path = Path(__file__).parent.parent / 'config' / 'default' / 'logging.yaml'
     else:
         config_path = Path(config_path)
 

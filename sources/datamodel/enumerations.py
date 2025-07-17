@@ -46,6 +46,7 @@ class ConditionType(BaseEnum):
 
 class EnergyClass(BaseEnum):
     A = "A"
+    AP = "A+"
     A1 = "A1"
     A2 = "A2"
     A3 = "A3"

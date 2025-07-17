@@ -12,7 +12,7 @@ import json
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
 import random
 
-from ..base_scraper import AbstractScraper
+from ..abstract_scraper import Scraper
 from ...exceptions import (
     ScrapingError, ValidationError, ConfigurationError,
     InvalidURLError, DataExtractionError, RequestError
@@ -21,7 +21,7 @@ from ...datamodel.listing_details import ListingDetails
 
 logger = logging.getLogger(__name__)
 
-class ImmobiliareScraper(AbstractScraper):
+class ImmobiliareScraper(Scraper):
     """Scraper implementation for immobiliare.it."""
 
     def __init__(self, config: Dict[str, Any]):

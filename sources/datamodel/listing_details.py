@@ -1,7 +1,7 @@
 """
 Data model for real estate properties.
 """
-from pydantic import Field, HttpUrl
+from pydantic import Field
 from .base_datamodel import QuantEstateDataObject
 from .listing_id import ListingId
 from .enumerations import *
@@ -13,15 +13,16 @@ class ListingDetails(QuantEstateDataObject):
     listing_id: ListingId = Field(..., description="Unique identifier for the property listing")
 
     # Pricing
+    # Filtering only valid prices (no price upon demand)
     formatted_price: str = Field(..., description="Human-readable price string")
     price_eur: float = Field(..., description="Numeric price value in EUR", ge=0)
     formatted_maintenance_fee: str | None = Field(None, description="Human-readable maintenance fee string")
     maintenance_fee: float | None = Field(None, description="Monthly maintenance fee in EUR", ge=0)
 
     # Property classification
-    type: PropertyType = Field(..., description="Property type (apartment, house, etc.)")
-    contract: ContractType = Field(..., description="Type of contract (sale, rent, etc.)")
-    condition: ConditionType | None = Field(None, description="Property condition (renovated, new, etc.)")
+    type: str = Field(..., description="Property type (apartment, house, etc.)")
+    contract: str = Field(..., description="Type of contract (sale, rent, etc.)")
+    condition: str | None = Field(None, description="Property condition (renovated, new, etc.)")
     is_new: bool | None = Field(None, description="Whether the property is new construction")
     is_luxury: bool | None = Field(None, description="Whether this is a luxury property")
 
@@ -54,8 +55,8 @@ class ListingDetails(QuantEstateDataObject):
     other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
 
     # Energy and utilities
-    heating_type: HeatingType | None = Field(None, description="Type of heating system")
-    air_conditioning: AirConditioningType | None = Field(None, description="Air conditioning type")
+    heating_type: str | None = Field(None, description="Type of heating system")
+    air_conditioning: str | None = Field(None, description="Air conditioning type")
     energy_class: EnergyClass | None = Field(None, description="Energy efficiency class")
 
     # Location

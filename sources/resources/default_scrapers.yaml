@@ -20,7 +20,7 @@ immobiliare:
 
     mongodb:
     # MongoDB settings (only if storage_settings.type = mongodb)
-      id_collection: "ids"
+      collection: "ids"
       listing_collection: "listings"
 
 # casa:
