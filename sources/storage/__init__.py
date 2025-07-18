@@ -10,7 +10,7 @@ from .file_storage import FileStorage
 from .mongo_storage import MongoDBStorage
 
 __all__ = [
-    'Storage',
-    'FileStorage',
-    'MongoDBStorage',
+    "Storage",
+    "FileStorage", 
+    "MongoDBStorage",
 ]

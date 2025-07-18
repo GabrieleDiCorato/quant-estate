@@ -1,18 +1,7 @@
 """
-Base classes and utilities for connectors.
+Web scrapers for the quant-estate project.
 """
 
-from .abstract_scraper import Scraper
-from .storage.abstract_storage import Storage
-from .connector import Connector
-from ..exceptions import ScrapingError, StorageError, ValidationError, ConfigurationError
+from .selenium_scraper import SeleniumScraper
 
-__all__ = [
-    'connector',
-    'abstract_scraper',
-    'Storage',
-    'ScrapingError',
-    'StorageError',
-    'ValidationError',
-    'ConfigurationError'
-]
+__all__ = ["SeleniumScraper"]

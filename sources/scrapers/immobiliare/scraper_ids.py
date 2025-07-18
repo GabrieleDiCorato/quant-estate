@@ -1,15 +1,10 @@
 import logging
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-from undetected_chromedriver import Chrome, ChromeOptions
 import time
 import random
-import pandas as pd
-import os
 
-from sources.connectors.immobiliare.scraper_ids import scroll_to_bottom
 from sources.datamodel.enumerations import Source
 from sources.datamodel.listing_id import ListingId
 from sources.scrapers.selenium_scraper import SeleniumScraper
