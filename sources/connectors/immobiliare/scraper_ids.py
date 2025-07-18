@@ -51,6 +51,8 @@ driver.execute_cdp_cmd('Network.setUserAgentOverride', {
     "platform": "Win32"
 })
 
+
+# prova
 # Resume: carica se esiste
 file_csv = "milano_links.csv"
 if os.path.exists(file_csv):
