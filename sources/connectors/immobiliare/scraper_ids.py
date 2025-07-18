@@ -9,11 +9,33 @@ import random
 import pandas as pd
 import os
 
-from sources.connectors.selenium_scraper import SeleniumScraper
-
 logger = logging.getLogger(__name__)
 
-        
+
+def scroll_to_bottom(driver: Chrome, pause_time: float = 1.0) -> None:
+    """Scroll to the bottom of the page to load dynamic content.
+
+    Args:
+        driver: Undetected Chrome instance
+        pause_time: Time to pause between scrolls
+    """
+    last_height = driver.execute_script("return document.body.scrollHeight")
+
+    while True:
+        # Scroll down to bottom
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+
+        # Wait for new content to load
+        time.sleep(pause_time)
+
+        # Check if we've reached the bottom
+        new_height = driver.execute_script("return document.body.scrollHeight")
+        if new_height == last_height:
+            break
+        last_height = new_height
+
+    print("Scrolled to bottom of page")
+
 
 # Anti-detection Chrome config
 chrome_options = ChromeOptions()
@@ -42,15 +64,13 @@ else:
     links_raccolti = set()
 
 # Vai alla prima pagina
-url_base = f"https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc"
+url_base = "https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc"
+# url_template = "https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc&pag={%pag}"
 driver.get(url_base)
 
 # Human-like behavior: scroll and wait
 time.sleep(random.uniform(3, 6))
-driver.execute_script("window.scrollTo(0, document.body.scrollHeight/4);")
-time.sleep(random.uniform(2, 4))
 driver.execute_script("window.scrollTo(0, 0);")
-time.sleep(random.uniform(2, 3))
 
 # Try to dismiss any cookie banners or popups
 try:
@@ -64,7 +84,7 @@ except:
 pagina = 1
 while True:
     print(f"Pagina {pagina}")
-    
+
     # Random scroll before scraping
     driver.execute_script(f"window.scrollTo(0, {random.randint(100, 300)});")
     time.sleep(random.uniform(1, 2))
@@ -78,17 +98,17 @@ while True:
         try:
             link = annuncio.get_attribute("href")
             titolo = annuncio.get_attribute("title") or annuncio.text.strip()
-            
+
             if link and link not in links_raccolti:
                 new_row = pd.DataFrame({'titolo_annuncio': [titolo], 'link_annuncio': [link]})
                 df = pd.concat([df, new_row], ignore_index=True)
                 links_raccolti.add(link)
                 nuovi_annunci += 1
-                
+
             # Simulate human reading time
             if i % 5 == 0:
                 time.sleep(random.uniform(0.5, 1.5))
-                
+
         except Exception as e:
             print(f"Errore processando annuncio: {e}")
             continue
@@ -97,46 +117,37 @@ while True:
 
     # Salva progressivo
     df.to_csv(file_csv, index=False)
-    
+
     # Random pause between pages
-    time.sleep(random.uniform(3, 7))
+    time.sleep(random.uniform(1, 2))
+
+    scroll_to_bottom(driver=driver)
 
     # Cerca bottone per andare alla prossima pagina
     try:
-        # Try multiple selectors for next button
-        next_selectors = [
-            'a[aria-label="Pagina successiva"]',
-            'a[title="Pagina successiva"]',
-            '.pagination__next',
-            'a:contains("Successiva")',
-            'a[href*="pag="]'
-        ]
-        
-        next_btn = None
-        for selector in next_selectors:
-            try:
-                next_btn = driver.find_element(By.CSS_SELECTOR, selector)
-                if next_btn.is_enabled() and next_btn.is_displayed():
-                    break
-            except:
-                continue
-                
+        next_btn = driver.find_element(By.CSS_SELECTOR, f'a[href*="pag={pagina + 1}"]')
+        time.sleep(random.uniform(1, 2))
+        if not (next_btn.is_enabled() and next_btn.is_displayed()):
+            print("Button 'Prossima pagina' non enabled or not displayed")
+            break
+
         if next_btn:
             # Scroll to button and click with human-like behavior
+            print("Trovato pulsante 'Prossima pagina'")
             driver.execute_script("arguments[0].scrollIntoView(true);", next_btn)
             time.sleep(random.uniform(1, 2))
-            
+
             # Use ActionChains for more natural clicking
             actions = ActionChains(driver)
             actions.move_to_element(next_btn).pause(random.uniform(0.5, 1.5)).click().perform()
-            
+
             # Wait for page to load
             time.sleep(random.uniform(4, 8))
             pagina += 1
         else:
             print("Fine pagine o pulsante non trovato.")
             break
-            
+
     except Exception as e:
         print(f"Errore navigazione: {e}")
         break
@@ -144,11 +155,6 @@ while True:
     # Fai stop se hai già tanti annunci
     if len(links_raccolti) >= 3000:
         print("Raggiunti 3000 annunci, stop.")
-        break
-        
-    # Break if no new listings found (might indicate blocking)
-    if nuovi_annunci == 0:
-        print("Nessun nuovo annuncio trovato, possibile blocco.")
         break
 
 driver.quit()
