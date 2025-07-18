@@ -95,11 +95,6 @@ class SeleniumScraper(ABC):
             driver.set_page_load_timeout(self.page_load_timeout)
 
             logger.info("Created undetected Chrome WebDriver instance")
-
-            # Visit the homepage to get cookies
-            logger.info("Visiting homepage to initialize session...")
-            self.get_page(driver, self.base_url)
-            self._realistic_wait()
             return driver
 
         except Exception as e:
@@ -119,9 +114,17 @@ class SeleniumScraper(ABC):
         finally:
             try:
                 driver.quit()
-                logger.debug("WebDriver session closed")
+                logger.info("WebDriver session closed")
             except Exception as e:
                 logger.warning("Error closing WebDriver: %s", str(e))
+
+    def warmup_driver(self, driver):
+        # Visit the homepage to get cookies
+        logger.info("Visiting homepage to initialize session...")
+        self.get_page(driver, self.base_url)
+        self._realistic_wait()
+        self._close_cookies(driver)
+        self._realistic_wait()
 
     def get_page(self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None) -> None:
         """Navigate to a page and optionally wait for an element.
@@ -146,8 +149,6 @@ class SeleniumScraper(ABC):
                     EC.presence_of_element_located((by, locator))
                 )
                 logger.debug("Found expected element: %s", locator)
-
-            self._realistic_wait()
 
         except TimeoutException as e:
             logger.error("Timeout loading page %s: %s", url, str(e))
@@ -186,17 +187,33 @@ class SeleniumScraper(ABC):
     def _realistic_wait(self) -> None:
         """Wait with realistic randomization to mimic human behavior."""
         # Generate base delay
-        delay = random.uniform(self.min_delay, self.max_delay) + random.uniform(
-            -0.2, 0.3
-        )
-
+        base_delay = random.uniform(self.min_delay, self.max_delay)
+        jitter_delay = random.uniform(-0.2, 0.3)
         # Occasionally add longer pauses (5% chance) to simulate human distractions
-        if random.random() < 0.05:
-            extra_pause = random.uniform(1.0, 3.0)
-            delay += extra_pause
-            logger.debug(
-                "Adding extra pause: %.2f seconds (simulating distraction)", extra_pause
-            )
+        extra_pause = 0.0 if random.random() >= 0.05 else random.uniform(1.0, 3.0)
+        delay = base_delay + jitter_delay + extra_pause
 
         logger.debug("Realistic wait: %.2f seconds", delay)
         time.sleep(delay)
+
+    def _close_cookies(self, driver: uc.Chrome) -> None:
+        """Close the cookies banner if present.
+
+        Args:
+            driver: WebDriver instance
+        """
+        # Try to dismiss any cookie banners or popups
+        try:
+            wait = WebDriverWait(driver, 5)
+            accept_btn = wait.until(
+                EC.element_to_be_clickable(
+                    (
+                        By.XPATH,
+                        "//button[contains(text(), 'Accetta') or contains(text(), 'Accept') or contains(@id, 'accept')]",
+                    )
+                )
+            )
+            accept_btn.click()
+        except Exception as e:
+            logger.warning("No cookie banner found or failed to close it: %s", str(e))
+            pass
