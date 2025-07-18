@@ -9,7 +9,11 @@ import random
 import pandas as pd
 import os
 
+from sources.connectors.selenium_scraper import SeleniumScraper
+
 logger = logging.getLogger(__name__)
+
+        
 
 # Anti-detection Chrome config
 chrome_options = ChromeOptions()
@@ -38,7 +42,7 @@ else:
     links_raccolti = set()
 
 # Vai alla prima pagina
-url_base = "https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc"
+url_base = f"https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc"
 driver.get(url_base)
 
 # Human-like behavior: scroll and wait
