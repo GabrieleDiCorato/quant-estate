@@ -12,10 +12,10 @@ from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
 from sources.config.model.storage_settings import MongoStorageSettings
-from sources.connectors.storage.abstract_storage import Storage
+from sources.storage.abstract_storage import Storage
 from sources.datamodel.listing_details import ListingDetails
-from ...datamodel.base_datamodel import QuantEstateDataObject
-from ...exceptions import StorageError
+from sources.datamodel.base_datamodel import QuantEstateDataObject
+from sources.exceptions import StorageError
 
 
 T = TypeVar("T", bound=QuantEstateDataObject)

@@ -6,17 +6,13 @@ import logging
 import json
 import time
 from typing import List, Dict, Any, Optional
-from bs4 import BeautifulSoup
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from ..selenium_scraper import SeleniumScraper
-from ...exceptions import (
-    ScrapingError, ValidationError, ConfigurationError,
-    InvalidURLError, DataExtractionError
-)
+from ...exceptions import ScrapingError, ValidationError
 from ...datamodel.listing_details import ListingDetails
 from ...datamodel.listing_id import ListingId
 from ...datamodel.enumerations import Source, ContractType, PropertyType

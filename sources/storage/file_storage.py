@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Type, TypeVar
 
 from sources.config.model.storage_settings import CsvStorageSettings
-from sources.connectors.storage.abstract_storage import Storage
+from sources.storage.abstract_storage import Storage
 from sources.exceptions import StorageError
 from sources.datamodel.base_datamodel import QuantEstateDataObject
 

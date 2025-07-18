@@ -11,28 +11,29 @@ from contextlib import contextmanager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import (
-    TimeoutException, WebDriverException, NoSuchElementException
-)
+from selenium.common.exceptions import TimeoutException, WebDriverException
 import undetected_chromedriver as uc
+
+from sources.storage.abstract_storage import Storage
 
 from ..exceptions import ConfigurationError, ScrapingError
 from ..datamodel.listing_details import ListingDetails
 
 logger = logging.getLogger(__name__)
 
-
 class SeleniumScraper(ABC):
     """Abstract base class for Selenium-based web scrapers."""
 
-    def __init__(self, 
-                    base_url: str,
-                    min_delay: float = 1.0,
-                    max_delay: float = 3.0,
-                    headless: bool = False,
-                    implicit_wait: int = 10,
-                    page_load_timeout: int = 30,
-                    window_size: tuple[int, int] = (1366, 768)
+    def __init__(
+        self,
+        storage: Storage,
+        base_url: str,
+        min_delay: float = 1.0,
+        max_delay: float = 3.0,
+        headless: bool = False,
+        implicit_wait: int = 10,
+        page_load_timeout: int = 30,
+        window_size: tuple[int, int] = (1366, 768),
     ):
         """Initialize the scraper with configuration.
 
@@ -43,7 +44,7 @@ class SeleniumScraper(ABC):
             ConfigurationError: If required configuration keys are missing
         """
         try:
-
+            self.storage = storage
             self.base_url = base_url
             self.min_delay = min_delay
             self.max_delay = max_delay
@@ -74,6 +75,8 @@ class SeleniumScraper(ABC):
 
             # Essential options only - let undetected-chromedriver handle stealth
             options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-web-security")
+            options.add_argument("--allow-running-insecure-content")
             options.add_argument(f"--window-size={self.window_size[0]},{self.window_size[1]}")
 
             if self.headless:
@@ -132,10 +135,7 @@ class SeleniumScraper(ABC):
             ScrapingError: If there's an error loading the page
         """
         try:
-            # Add random delay
-            self._realistic_wait()
-
-            logger.debug("Navigating to: %s", url)
+            logger.info("Navigating to: %s", url)
             driver.get(url)
 
             # Wait for specific element if provided
@@ -146,6 +146,8 @@ class SeleniumScraper(ABC):
                     EC.presence_of_element_located((by, locator))
                 )
                 logger.debug("Found expected element: %s", locator)
+
+            self._realistic_wait()
 
         except TimeoutException as e:
             logger.error("Timeout loading page %s: %s", url, str(e))
@@ -180,33 +182,6 @@ class SeleniumScraper(ABC):
             last_height = new_height
 
         logger.debug("Scrolled to bottom of page")
-
-    @abstractmethod
-    def validate_url(self, url: str) -> None:
-        """Validate that the URL is appropriate for this scraper.
-        
-        Args:
-            url: URL to validate
-            
-        Raises:
-            ValidationError: If the URL is invalid
-        """
-        pass
-
-    @abstractmethod
-    def scrape_listings(self, url: str) -> list[ListingDetails]:
-        """Scrape listings from the given URL.
-        
-        Args:
-            url: URL to scrape listings from
-            
-        Returns:
-            List of ListingDetails objects
-            
-        Raises:
-            ScrapingError: If there's an error scraping the listings
-        """
-        pass
 
     def _realistic_wait(self) -> None:
         """Wait with realistic randomization to mimic human behavior."""

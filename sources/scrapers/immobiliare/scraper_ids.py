@@ -39,19 +39,13 @@ def scroll_to_bottom(driver: Chrome, pause_time: float = 1.0) -> None:
 
 # Anti-detection Chrome config
 chrome_options = ChromeOptions()
-# Remove these - undetected_chromedriver handles detection automatically
-# chrome_options.add_argument("--no-sandbox")  # Can cause issues
-# chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Handled by UC
 chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("--disable-web-security")
 chrome_options.add_argument("--allow-running-insecure-content")
 chrome_options.add_argument("--window-size=1366,768")
-
 # Don't set user agent manually - undetected_chromedriver handles this
-# user_agent = random.choice(user_agents)
-# chrome_options.add_argument(f'--user-agent={user_agent}')
 
-# instantiate a Chrome browser with correct parameters
+# Instantiate a Chrome browser with correct parameters
 driver = Chrome(options=chrome_options, version_main=None)
 
 # Resume: carica se esiste
@@ -65,7 +59,6 @@ else:
 
 # Vai alla prima pagina
 url_base = "https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc"
-# url_template = "https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc&pag={%pag}"
 driver.get(url_base)
 
 # Human-like behavior: scroll and wait
