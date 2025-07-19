@@ -31,6 +31,9 @@ class MongoDBStorage(Storage[T]):
             data_type: The specific QuantEstateDataObject subclass to handle
             config: Configuration with MongoDB connection parameters
         """
+        logger.info("Initializing MongoDBStorage for %s", data_type.__name__)
+        logger.debug("MongoDB connection settings: %s", config)
+
         self.data_type = data_type
         self.config = config
 

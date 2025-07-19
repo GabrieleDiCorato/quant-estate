@@ -1,5 +1,4 @@
 from enum import Enum
-from functools import cached_property
 import os
 from pathlib import Path
 from pydantic import BaseModel, Field, computed_field, field_validator, SecretStr
@@ -26,11 +25,11 @@ class CsvStorageSettings(BaseModel):
 class MongoStorageSettings(BaseModel):
     """MongoDB storage settings for scrapers."""
 
-    connection_template: str = Field(default="mongodb+srv://{username}:{password}@{host}:{port}/{database}", description="MongoDB connection template")
-    host: str = Field(default="localhost", description="MongoDB host")
-    port: int = Field(default=27017, description="MongoDB port")
-    user: SecretStr = Field(default=SecretStr(""), description="MongoDB username")
-    password: SecretStr = Field(default=SecretStr(""), description="MongoDB password")
+    # SRV does not require a port
+    connection_string: SecretStr = Field(
+        default=SecretStr("mongodb://localhost:27017"),
+        description="MongoDB connection string"
+    )
 
     database: str = Field(default="quant_estate", description="MongoDB database name")
     collection_ids: str = Field(default="ids", description="Collection name for storing IDs")
@@ -41,11 +40,6 @@ class MongoStorageSettings(BaseModel):
     max_idle_time_ms: int = Field(default=60000, description="Maximum idle time for MongoDB connections in milliseconds")
 
     wtimeout: int = Field(default=5000, description="Timeout for MongoDB operations in milliseconds")
-
-    @computed_field(description="MongoDB connection string")
-    @cached_property
-    def connection_string(self) -> SecretStr:
-        return SecretStr(f"mongodb://{self.user.get_secret_value()}:{self.password.get_secret_value()}@{self.host}:{self.port}/{self.database}")
 
 
 class StorageSettings(BaseSettings):

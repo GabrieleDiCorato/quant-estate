@@ -38,17 +38,24 @@ class FileStorage(Storage[T]):
 
         # Initialize CSV file with headers if it doesn't exist
         if not self.csv_path.exists():
-            self._initialize_csv()
+            self.field_names = self._initialize_csv()
 
         logger.info("Initialized FileStorage for %s at %s", data_type.__name__, self.base_path)
 
-    def _initialize_csv(self) -> None:
+    def _initialize_csv(self) -> list[str]:
         """Initialize CSV file with appropriate headers for the data type."""
         field_names = list(self.data_type.model_fields.keys())
+
+        # Add computed fields if they exist
+        if hasattr(self.data_type, "model_computed_fields"):
+            computed_field_names = list(self.data_type.model_computed_fields.keys())
+            field_names.extend(computed_field_names)
 
         with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=field_names)
             writer.writeheader()
+
+        return field_names
 
     def append_data(self, data: Sequence[T]) -> bool:
         """Append data to storage.
@@ -69,10 +76,8 @@ class FileStorage(Storage[T]):
         logger.info("Storing [%d] records of type [%s]", len(data), self.data_type.__name__)
 
         try:
-            field_names = list(self.data_type.model_fields.keys())
-
             with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=field_names)
+                writer = csv.DictWriter(f, fieldnames=self.field_names)
                 writer.writerows([item.model_dump() for item in data])
 
             logger.info("Successfully appended %d records to CSV file", len(data))

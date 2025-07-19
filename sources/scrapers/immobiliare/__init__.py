@@ -2,6 +2,6 @@
 Immobiliare.it web scraper package.
 """
 
-from .listing_scraper import ImmobiliareSeleniumScraper
+from .scraper_ids import ImmobiliareIdScraper
 
-__all__ = ["ImmobiliareSeleniumScraper"]
+__all__ = ["ImmobiliareIdScraper"]

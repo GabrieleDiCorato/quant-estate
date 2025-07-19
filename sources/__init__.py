@@ -5,6 +5,7 @@ Quant Estate - Real estate data collection and analysis toolkit
 __version__ = "0.1.0"
 
 from .config import ConfigManager
+from .config.model import CsvStorageSettings, MongoStorageSettings, StorageSettings, StorageType
 from .logging import setup_logging, get_logger
 from .datamodel import ListingDetails, ListingId, QuantEstateDataObject, ContractType
 from .exceptions import (

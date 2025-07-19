@@ -14,6 +14,7 @@ from sources.storage.abstract_storage import Storage
 from sources.storage.file_storage import FileStorage
 
 logger = logging.getLogger(__name__)
+SOURCE = "immobiliare"
 
 class ImmobiliareIdScraper(SeleniumScraper):
     """Scraper for Immobiliare.it using Selenium."""
@@ -36,16 +37,16 @@ class ImmobiliareIdScraper(SeleniumScraper):
             # Navigate to the initial page
             logger.info("Navigating to scrape URL: %s", self.scrape_url)
             self.get_page(driver, self.scrape_url)
-            pagina = 1
+            page_n = 1
             total_listings = 0
             while True:
-                logger.info(f"Scraping page {pagina}...")
+                logger.info(f"Scraping page {page_n}...")
 
                 # Random scroll before scraping
                 driver.execute_script(f"window.scrollTo(0, {random.randint(100, 300)});")
                 self._realistic_wait()
 
-                # Trova tutti i <a> con classe dei titoli
+                # Find all listing elements
                 elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']")
                 logger.info("Found %d listings", len(elements))
 
@@ -65,31 +66,28 @@ class ImmobiliareIdScraper(SeleniumScraper):
                             logger.warning("Could not extract ID from link: %s", link)
                             continue
 
-                        id = ListingId(source=Source.IMMOBILIARE, source_id=source_id, title=title, url=link)
+                        id = ListingId(source=SOURCE, source_id=source_id, title=title, url=link)
                         listings.append(id)
 
-                        # Simulate human reading time
-                        # if i % 5 == 0:
-                        #    time.sleep(random.uniform(0.5, 1.5))
                     except Exception as e:
                         print(f"Errore processando annuncio: {e}")
                         continue
 
-                logger.info("New listings added: %d", len(listings)) 
+                total_listings += len(listings)
+                logger.info("New listings found: [%d]. Total: [%d]", len(listings), total_listings)
 
                 # Salva progressivo
                 self.storage.append_data(listings)
-                total_listings += len(listings)
 
                 # Random pause between pages
                 self._realistic_wait()
                 self.scroll_to_bottom(driver)
 
-                self.to_next_page(driver, pagina)
-                pagina += 1
+                self.to_next_page(driver, page_n)
+                page_n += 1
 
                 # Fai stop se hai già tanti annunci
-                if total_listings >= 3000 or pagina == 80:
+                if total_listings >= 3000 or page_n == 80:
                     print("Raggiunti 3000 annunci, stop.")
                     break
 

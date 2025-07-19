@@ -19,5 +19,6 @@ class QuantEstateDataObject(BaseModel):
         frozen=True,
         # Performance & looks
         cache_strings=True,
+        # Fundamental for mongo compatibility
         use_enum_values=True
     )

@@ -4,7 +4,7 @@ Common to all connectors and data models.
 """
 from enum import Enum
 
-class BaseEnum(Enum):
+class BaseEnum(str, Enum):
     """Base class for all enumerations in the project."""
 
     def __str__(self):
