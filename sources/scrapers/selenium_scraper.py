@@ -28,6 +28,7 @@ class SeleniumScraper(ABC):
         self,
         storage: Storage,
         base_url: str,
+        scrape_url: str,
         min_delay: float = 1.0,
         max_delay: float = 3.0,
         headless: bool = False,
@@ -46,6 +47,7 @@ class SeleniumScraper(ABC):
         try:
             self.storage = storage
             self.base_url = base_url
+            self.scrape_url = scrape_url
             self.min_delay = min_delay
             self.max_delay = max_delay
 
@@ -124,8 +126,8 @@ class SeleniumScraper(ABC):
         logger.info("Visiting homepage to initialize session...")
         self.get_page(driver, self.base_url)
         # Wait for the manual captcha solving or any initial loading
-        time.sleep(10)  
-        self._realistic_wait()
+        time.sleep(random.uniform(5, 10))
+        # Wait for cookies to load and close them
         self._close_cookies(driver)
         self._realistic_wait()
         logger.info("Session is warmed up!")
@@ -208,16 +210,19 @@ class SeleniumScraper(ABC):
         """
         # Try to dismiss any cookie banners or popups
         try:
-            wait = WebDriverWait(driver, 5)
+            wait = WebDriverWait(driver, 10)
+            # Wait for the specific Didomi cookies button to be present and clickable
             accept_btn = wait.until(
-                EC.element_to_be_clickable(
-                    (
-                        By.XPATH,
-                        "//button[contains(text(), 'Accetta') or contains(text(), 'Accept') or contains(@id, 'accept')]",
-                    )
-                )
+                EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
             )
             accept_btn.click()
+            logger.info("Successfully clicked cookies accept button")
+        except TimeoutException:
+            logger.warning("Didomi cookies button not found within timeout")
         except Exception as e:
-            logger.warning("No cookie banner found or failed to close it: %s", str(e))
-            pass
+            logger.warning("Failed to close cookies banner: %s", str(e))
+
+    @abstractmethod
+    def to_next_page(self, driver, current_page: int) -> bool:
+        """Abstract method to navigate to the next page."""
+        pass
