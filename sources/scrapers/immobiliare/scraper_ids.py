@@ -5,13 +5,15 @@ from selenium.webdriver.common.action_chains import ActionChains
 import time
 import random
 
+from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.enumerations import Source
 from sources.datamodel.listing_id import ListingId
+from sources.logging import logging_utils
 from sources.scrapers.selenium_scraper import SeleniumScraper
 from sources.storage.abstract_storage import Storage
+from sources.storage.file_storage import FileStorage
 
 logger = logging.getLogger(__name__)
-
 
 class ImmobiliareIdScraper(SeleniumScraper):
     """Scraper for Immobiliare.it using Selenium."""
@@ -138,3 +140,10 @@ class ImmobiliareIdScraper(SeleniumScraper):
         match = re.search(pattern, url.strip())
 
         return match.group(1) if match else None
+
+# uv run --env-file sources/resources/config.dev.env sources/scrapers/immobiliare/scraper_ids.py
+if __name__ == "__main__":  
+    logging_utils.setup_logging(config_path='sources/resources/logging.yaml')
+    storage: Storage = FileStorage(ListingId, CsvStorageSettings())
+    scraper = ImmobiliareIdScraper(storage)
+    scraper.scrape()

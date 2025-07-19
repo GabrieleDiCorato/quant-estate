@@ -32,11 +32,21 @@ handlers:
 loggers:
   # Root logger configuration
   root:
-    level: DEBUG
+    level: INFO
     handlers: [console, file]
 
   # Module-specific logger configurations
   sources:
     level: DEBUG
+    handlers: [console, file]
+    propagate: false
+
+  selenium:
+    level: WARNING
+    handlers: [console, file]
+    propagate: true
+
+  undetected_chromedriver:
+    level: WARNING
     handlers: [console, file]
     propagate: false

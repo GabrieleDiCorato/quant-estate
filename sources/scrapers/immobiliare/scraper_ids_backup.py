@@ -152,3 +152,4 @@ while True:
 
 driver.quit()
 print("Fatto! Totale annunci raccolti:", len(links_raccolti))
+

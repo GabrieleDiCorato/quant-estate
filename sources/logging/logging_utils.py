@@ -37,9 +37,15 @@ def setup_logging(config_path: str | Path | None = None) -> None:
         return
 
     if config_path is None:
-        config_path = Path(__file__).parent.parent / 'config' / 'default' / 'logging.yaml'
+        project_root = Path(__file__).parents[2]
+        config_path = project_root / "sources" / "resources" / "logging.yaml"
     else:
         config_path = Path(config_path)
+
+    # Make path absolute if it's relative
+    if not config_path.is_absolute():
+        project_root = Path(__file__).parents[2]
+        config_path = project_root / config_path
 
     if not config_path.exists():
         raise LoggingConfigError(f"Logging configuration file not found: {config_path}")
