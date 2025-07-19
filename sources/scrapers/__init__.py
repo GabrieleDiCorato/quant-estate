@@ -3,6 +3,6 @@ Web scrapers for the quant-estate project.
 """
 
 from .selenium_scraper import SeleniumScraper
-from .immobiliare.listing_scraper import ImmobiliareSeleniumScraper
+from .immobiliare.scraper_ids import ImmobiliareIdScraper
 
-__all__ = ["SeleniumScraper", "ImmobiliareSeleniumScraper"]
+__all__ = ["SeleniumScraper", "ImmobiliareIdScraper"]
