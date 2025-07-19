@@ -77,7 +77,8 @@ class SeleniumScraper(ABC):
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-web-security")
             options.add_argument("--allow-running-insecure-content")
-            options.add_argument(f"--window-size={self.window_size[0]},{self.window_size[1]}")
+            # options.add_argument(f"--window-size={self.window_size[0]},{self.window_size[1]}")
+            options.add_argument("--start-maximized")
 
             if self.headless:
                 options.add_argument("--headless=new")  # Use new headless mode
@@ -122,9 +123,12 @@ class SeleniumScraper(ABC):
         # Visit the homepage to get cookies
         logger.info("Visiting homepage to initialize session...")
         self.get_page(driver, self.base_url)
+        # Wait for the manual captcha solving or any initial loading
+        time.sleep(10)  
         self._realistic_wait()
         self._close_cookies(driver)
         self._realistic_wait()
+        logger.info("Session is warmed up!")
 
     def get_page(self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None) -> None:
         """Navigate to a page and optionally wait for an element.
