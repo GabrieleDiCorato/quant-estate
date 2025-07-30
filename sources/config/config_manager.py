@@ -46,7 +46,7 @@ class ConfigManager:
 
         # Create settings with runtime env file path
         settings = StorageSettings(_env_file=env_file_path)
-        logger.info(f"Loaded storage config from: {env_file_path}")
+        logger.info(f"Loaded storage config from [{env_file_path}]: [{settings}]")
         return settings
 
     def reload_config(self) -> None:
