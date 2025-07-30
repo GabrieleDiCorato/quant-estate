@@ -3,7 +3,7 @@ Storage implementations for immobiliare.it data.
 """
 
 import logging
-from typing import Type, TypeVar
+from typing import Type
 from urllib.parse import quote_plus
 from collections.abc import Sequence
 from contextlib import contextmanager
@@ -11,17 +11,16 @@ from contextlib import contextmanager
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 
+from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.config.model.storage_settings import MongoStorageSettings
 from sources.storage.abstract_storage import Storage
 from sources.datamodel.listing_details import ListingDetails
-from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.exceptions import StorageError
 
 
-T = TypeVar("T", bound=QuantEstateDataObject)
 logger = logging.getLogger(__name__)
 
-class MongoDBStorage(Storage[T]):
+class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
     """MongoDB-based storage implementation."""
 
     def __init__(self, data_type: Type[T], config: MongoStorageSettings):
@@ -82,22 +81,31 @@ class MongoDBStorage(Storage[T]):
 
         logger.info("Storing %d %s records", len(data), self.data_type.__name__)
 
+        client = None
         try:
-            with self._get_client() as client:
-                db = client[self.database]
-                collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
-                db_collection = db[collection_str]
+            client = MongoClient(self.config.connection_string.get_secret_value())
+            db = client[self.database]
+            collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
+            db_collection = db[collection_str]
 
-                # Convert each object to a dictionary and insert
-                documents = [item.model_dump() for item in data]
-                result = db_collection.insert_many(documents, ordered=False)
+            upserted_count = 0
+            for item in data:
+                document = item.model_dump()
 
-                logger.info(
-                    "Successfully inserted %d documents into collection: [%s]",
-                    len(result.inserted_ids),
-                    collection_str,
-                )
-                return True
+                # Use the computed 'id' field as unique identifier
+                filter_query = {"id": document["id"]}
+
+                result = db_collection.replace_one(filter_query, document, upsert=True)
+
+                if result.upserted_id or result.modified_count > 0:
+                    upserted_count += 1
+
+            logger.info(
+                "Successfully upserted %d documents into collection: [%s]",
+                upserted_count,
+                collection_str,
+            )
+            return True
 
         except DuplicateKeyError as e:
             logger.warning("Duplicate key error during insertion: %s", str(e))
@@ -105,6 +113,9 @@ class MongoDBStorage(Storage[T]):
         except Exception as e:
             logger.error("Failed to append to MongoDB: %s", str(e), exc_info=True)
             raise StorageError(f"Failed to append to MongoDB: {e}")
+        finally:
+            if client is not None:
+                client.close()
 
     def __enter__(self):
         """Context manager entry."""

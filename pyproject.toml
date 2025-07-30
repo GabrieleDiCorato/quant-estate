@@ -28,11 +28,11 @@ dependencies = [
     "selenium>=4.34.2",
     "webdriver-manager>=4.0.2",
     "undetected-chromedriver>=3.5.5",
+    "nb-clean>=4.0.1",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "nb-clean>=4.0.1",
     "jupyter>=1.0.0",
     "ipykernel>=6.0.0",
 ]

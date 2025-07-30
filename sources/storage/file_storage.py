@@ -4,18 +4,17 @@ import logging
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Type, TypeVar
+from typing import Type
 
+from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.config.model.storage_settings import CsvStorageSettings
 from sources.storage.abstract_storage import Storage
 from sources.exceptions import StorageError
-from sources.datamodel.base_datamodel import QuantEstateDataObject
 
 
-T = TypeVar("T", bound=QuantEstateDataObject)
 logger = logging.getLogger(__name__)
 
-class FileStorage(Storage[T]):
+class FileStorage[T: QuantEstateDataObject](Storage[T]):
     """File-based storage implementation using CSV files."""
 
     def __init__(self, data_type: Type[T], config: CsvStorageSettings):

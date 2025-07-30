@@ -21,7 +21,7 @@ Our application is cleanly organized and easily extendable to extract best value
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.10+
 
 We use [uv](https://github.com/astral-sh/uv) for dependency management and to build the project. If you want to contribute, please follow the setup instructions.
 

@@ -1697,6 +1697,7 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "matplotlib" },
+    { name = "nb-clean" },
     { name = "neo4j" },
     { name = "pandas" },
     { name = "pydantic" },
@@ -1714,7 +1715,6 @@ dependencies = [
 dev = [
     { name = "ipykernel" },
     { name = "jupyter" },
-    { name = "nb-clean" },
 ]
 
 [package.dev-dependencies]
@@ -1728,7 +1728,7 @@ requires-dist = [
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.0.0" },
     { name = "jupyter", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "matplotlib", specifier = ">=3.10.3" },
-    { name = "nb-clean", marker = "extra == 'dev'", specifier = ">=4.0.1" },
+    { name = "nb-clean", specifier = ">=4.0.1" },
     { name = "neo4j", specifier = ">=5.28.1" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pydantic", specifier = ">=2.11.7" },

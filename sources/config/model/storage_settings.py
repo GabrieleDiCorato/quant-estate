@@ -6,8 +6,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from sources.exceptions import ConfigurationError
 
+# Get environment variables at module level
+_env = os.getenv("QE_ENV", "dev")
+_conf_folder = os.getenv("QE_CONF_FOLDER", "sources/resources")
 
-class StorageType(Enum):
+# Calculate env file path from project root, not current working directory
+_project_root = Path(__file__).parent.parent.parent.parent  # Go up to project root
+_env_file_path = _project_root / _conf_folder / f"storage.{_env}.env"
+
+
+class StorageType(str, Enum):
     """Enum for storage types."""
     FILE = "file"
     MONGODB = "mongodb"
@@ -45,22 +53,14 @@ class MongoStorageSettings(BaseModel):
 class StorageSettings(BaseSettings):
     """Storage settings """
 
-    env: str | None = os.getenv("QE_ENV")
-    if not env:
-        raise ConfigurationError("QE_ENV environment variable is not set")
-
-    conf_folder: str | None = os.getenv("QE_CONF_FOLDER")
-    if not conf_folder:
-        raise ConfigurationError("QE_CONF_FOLDER environment variable is not set")
-
     model_config = SettingsConfigDict(
         extra="forbid",
         validate_default=True,
         case_sensitive=False,
         use_enum_values=True,
-        env_prefix="STORAGE_",
+        env_prefix="STORAGE__",
         env_file_encoding="utf-8",
-        env_file=os.path.join(Path.cwd(), conf_folder, f"config.{env}.env"),
+        env_file=str(_env_file_path),
         env_ignore_empty=True,
         env_nested_delimiter="__",
         nested_model_default_partial_update=True,
