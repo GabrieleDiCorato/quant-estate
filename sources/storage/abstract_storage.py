@@ -46,8 +46,8 @@ class Storage[T: QuantEstateDataObject](ABC):
         from sources.storage.mongo_storage import MongoDBStorage
 
         if config.storage_type == StorageType.FILE:
-            return FileStorage(data_type=data_type, config=config.file_settings)
+            return FileStorage[T](data_type=data_type, config=config.file_settings)
         elif config.storage_type == StorageType.MONGODB:
-            return MongoDBStorage(data_type=data_type, config=config.mongodb_settings)
+            return MongoDBStorage[T](data_type=data_type, config=config.mongodb_settings)
         else:
             raise ValueError(f"Unsupported storage type: {config.storage_type}")

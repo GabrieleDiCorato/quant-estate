@@ -20,10 +20,7 @@ class CsvStorageSettings(BaseModel):
 
 class MongoStorageSettings(BaseModel):
     """MongoDB storage settings for scrapers."""
-    connection_string: SecretStr = Field(
-        default=SecretStr("mongodb://localhost:27017"),
-        description="MongoDB connection string"
-    )
+    connection_string: SecretStr = Field(default=SecretStr("mongodb://localhost:27017"), description="MongoDB connection string")
     database: str = Field(default="quant_estate", description="MongoDB database name")
     collection_ids: str = Field(default="ids", description="Collection name for storing IDs")
     collection_listings: str = Field(default="listings", description="Collection name for storing listings")

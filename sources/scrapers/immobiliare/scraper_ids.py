@@ -83,7 +83,11 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 self._realistic_wait()
                 self.scroll_to_bottom(driver)
 
-                self.to_next_page(driver, page_n)
+                is_next = self.to_next_page(driver, page_n)
+                if not is_next:
+                    logger.error("No more pages to scrape or button not found.")
+                    break
+
                 page_n += 1
 
                 # Fai stop se hai già tanti annunci
@@ -114,9 +118,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
     def to_next_page(self, driver, current_page: int) -> bool:
         """Navigate to the next page of listings."""
         try:
-            next_btn = driver.find_element(
-                By.CSS_SELECTOR, f'a[href*="pag={current_page + 1}"]'
-            )
+            next_btn = driver.find_element(By.CSS_SELECTOR, f'a[href*="pag={current_page + 1}"]')
             if not (next_btn.is_enabled() and next_btn.is_displayed()):
                 logger.error("Button 'Prossima pagina' non enabled or not displayed")
                 return False
@@ -133,6 +135,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
                     random.uniform(0.5, 1.5)
                 ).click().perform()
 
+                logger.info("Clicked on 'Prossima pagina' button!")
                 # Wait for page to load
                 self._realistic_wait()
                 return True
