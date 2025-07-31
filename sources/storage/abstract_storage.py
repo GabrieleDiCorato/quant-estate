@@ -16,7 +16,7 @@ class Storage[T: QuantEstateDataObject](ABC):
     """Abstract base class for data storage implementations."""
 
     @abstractmethod
-    def append_data(self, data: Sequence[T]) -> bool:
+    def append_data(self, data: Sequence[T]) -> int:
         """Append data to storage.
 
         Args:

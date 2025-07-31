@@ -25,7 +25,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
         """Initialize the Immobiliare scraper with specific settings."""
         super().__init__(storage, base_url, scrape_url=scrape_url, **kwargs)
 
-    def scrape(self):
+    def scrape(self, limit: int = 2000):
         """Main scraping method to collect property IDs."""
 
         # Automatically closes driver after use
@@ -37,6 +37,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
             self.get_page(driver, self.scrape_url)
 
             total_listings = 0
+            total_inserted = 0
             while True:
                 page_n = self._get_current_page_number(driver)
                 logger.info(f"Scraping page {page_n}...")
@@ -72,11 +73,13 @@ class ImmobiliareIdScraper(SeleniumScraper):
                         logger.warning(f"Error processing listing: {e}")
                         continue
 
-                total_listings += len(listings)
-                logger.info("New listings found: [%d]. Total: [%d]", len(listings), total_listings)
-
                 # Salva progressivo
-                self.storage.append_data(listings)
+                logger.info("Going to attempt storage of %d listings", len(listings))
+                inserted_count = self.storage.append_data(listings)
+
+                total_listings += len(listings)
+                total_inserted += inserted_count
+                logger.info("Listings scraped: [%d]. Listings inserted: [%d]", total_listings, total_inserted)
 
                 # Random pause between pages
                 self._realistic_wait()
@@ -88,8 +91,8 @@ class ImmobiliareIdScraper(SeleniumScraper):
                     break
 
                 # Stop condition
-                if total_listings >= 3000 or page_n == 80:
-                    logger.info("Raggiunti 3000 annunci, stop.")
+                if total_listings >= limit or page_n == 80:
+                    logger.info("Raggiunti %d annunci, stop.", limit)
                     break
 
             logger.info("Done! Total listing IDs scraped: %d", total_listings)

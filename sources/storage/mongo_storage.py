@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from contextlib import contextmanager
 
 from pymongo import MongoClient
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import BulkWriteError
 
 from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.config.model.storage_settings import MongoStorageSettings
@@ -35,15 +35,14 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
 
         self.data_type = data_type
         self.config = config
-
-        # Format the connection string with all parameters
         self.connection_string = self.config.connection_string
         self.database = self.config.database
-
         self._client = None
 
         # Test connection and log safely
         self._test_connection()
+        self._ensure_indexes()
+
         logger.info("Initialized MongoDBStorage connection to [%s]", self.database)
 
     def _test_connection(self) -> None:
@@ -54,6 +53,24 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
         except Exception as e:
             raise StorageError(f"Failed to connect to MongoDB: {e}")
 
+    def _ensure_indexes(self) -> None:
+        """Create necessary indexes for the collections."""
+        try:
+            with self._get_client() as client:
+                db = client[self.database]
+
+                # Create unique index on 'id' field for both collections
+                # If the index already exists, it will be ignored
+                ids_collection = db[self.config.collection_ids]
+                ids_collection.create_index("id", unique=True)
+
+                listings_collection = db[self.config.collection_listings]
+                listings_collection.create_index("id", unique=True)
+
+                logger.info("Ensured unique indexes on 'id' field")
+        except Exception as e:
+            logger.warning("Failed to create indexes: %s", str(e))
+
     @contextmanager
     def _get_client(self):
         """Context manager for MongoDB client with proper resource cleanup."""
@@ -63,14 +80,14 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
         finally:
             client.close()
 
-    def append_data(self, data: Sequence[T]) -> bool:
+    def append_data(self, data: Sequence[T]) -> int:
         """Append data to storage.
 
         Args:
             data: List of data objects to append
 
         Returns:
-            bool: True if data was successfully appended
+            int: The number of records successfully appended
 
         Raises:
             StorageError: If there's an error storing the data
@@ -81,41 +98,32 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
 
         logger.info("Storing %d %s records", len(data), self.data_type.__name__)
 
-        client = None
         try:
-            client = MongoClient(self.config.connection_string.get_secret_value())
-            db = client[self.database]
-            collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
-            db_collection = db[collection_str]
+            with self._get_client() as client:
+                db = client[self.database]
+                collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
+                db_collection = db[collection_str]
 
-            upserted_count = 0
-            for item in data:
-                document = item.model_dump()
+                documents = [item.model_dump() for item in data]
 
-                # Use the computed 'id' field as unique identifier
-                filter_query = {"id": document["id"]}
+                # Use insert_many with ordered=False to continue on duplicates
+                try:
+                    result = db_collection.insert_many(documents, ordered=False)
+                    inserted_count = len(result.inserted_ids)
+                    logger.info("Successfully inserted %d new documents into collection: [%s]", 
+                            inserted_count, collection_str)
+                    return inserted_count
+                except BulkWriteError as e:
+                    # Extract successful insertions from bulk write exception
+                    inserted_count = getattr(e, 'details', {}).get('nInserted', 0)
+                    duplicate_count = len(documents) - inserted_count
+                    logger.info("Inserted %d new documents, skipped %d duplicates in collection: [%s]", 
+                            inserted_count, duplicate_count, collection_str)
+                    return inserted_count
 
-                result = db_collection.replace_one(filter_query, document, upsert=True)
-
-                if result.upserted_id or result.modified_count > 0:
-                    upserted_count += 1
-
-            logger.info(
-                "Successfully upserted %d documents into collection: [%s]",
-                upserted_count,
-                collection_str,
-            )
-            return True
-
-        except DuplicateKeyError as e:
-            logger.warning("Duplicate key error during insertion: %s", str(e))
-            return False
         except Exception as e:
             logger.error("Failed to append to MongoDB: %s", str(e), exc_info=True)
             raise StorageError(f"Failed to append to MongoDB: {e}")
-        finally:
-            if client is not None:
-                client.close()
 
     def __enter__(self):
         """Context manager entry."""

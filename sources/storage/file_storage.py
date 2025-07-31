@@ -56,7 +56,7 @@ class FileStorage[T: QuantEstateDataObject](Storage[T]):
 
         return field_names
 
-    def append_data(self, data: Sequence[T]) -> bool:
+    def append_data(self, data: Sequence[T]) -> int:
         """Append data to storage.
 
         Args:
@@ -70,7 +70,7 @@ class FileStorage[T: QuantEstateDataObject](Storage[T]):
         """
         if not data:
             logger.warning("No data to store")
-            return False
+            return 0
 
         logger.info("Storing [%d] records of type [%s]", len(data), self.data_type.__name__)
 
@@ -80,7 +80,7 @@ class FileStorage[T: QuantEstateDataObject](Storage[T]):
                 writer.writerows([item.model_dump() for item in data])
 
             logger.info("Successfully appended %d records to CSV file", len(data))
-            return True
+            return len(data)
         except Exception as e:
             logger.error("Failed to append to CSV: %s", str(e), exc_info=True)
             raise StorageError(f"Failed to append to CSV: {e}")
