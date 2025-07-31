@@ -5,6 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.remote.webelement import WebElement
 import re
 import random
+from datetime import datetime
 
 from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.enumerations import Source
@@ -65,6 +66,10 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Extract last update date
             last_update_date = self._get_last_update_date(driver)
 
+            # Extract feature badges
+            feature_badges = self._get_feature_badges(driver)
+            logger.info("Extracted feature badges: %s", feature_badges)
+
             # Extract description title and extended description
             description_title, extended_description = self._get_description(driver)
 
@@ -76,9 +81,10 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             logger.info("Successfully opened characteristics dialog, ready for data extraction")
 
-            # In your scrape() method, after opening the dialog:
             characteristics = self._extract_characteristics(dialog_element)
             logger.info("Extracted characteristics: %s", characteristics)
+
+
 
     def _get_element(self, driver, by: str, value: str):
         """Helper method to get an element by its locator."""
@@ -149,7 +155,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
         Returns:
             str: Date in YYYY-MM-DD format, or None if not found
         """
-        from datetime import datetime
 
         try:
             # Find the last update element
@@ -159,7 +164,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
             logger.debug("Found last update text: %s", last_update_text)
 
             # Extract date using regex pattern for dd/mm/yyyy format
-            import re
             date_pattern = r'(\d{1,2})/(\d{1,2})/(\d{4})'
             match = re.search(date_pattern, last_update_text)
 
@@ -178,6 +182,33 @@ class ImmobiliareListingScraper(SeleniumScraper):
         except Exception as e:
             logger.warning("Error extracting last update date: %s", str(e))
             return None
+
+    def _get_feature_badges(self, driver) -> list[str]:
+        """Extract feature badges from the listing page.
+        
+        Returns:
+            list[str]: List of feature badge texts, empty list if none found
+        """
+        try:
+            # Find the feature badges container
+            badges_container = driver.find_element(By.CSS_SELECTOR, "div.styles_ld-featuresBadges__mJqLG ul.styles_ld-featuresBadges__list__MGuKy")
+            
+            # Find all badge elements
+            badge_elements = badges_container.find_elements(By.CSS_SELECTOR, "li.styles_ld-featuresBadges__badge___8QgZ span.nd-badge")
+            
+            # Extract text from each badge
+            badges = []
+            for badge_element in badge_elements:
+                badge_text = self._normalize_text(badge_element.text)
+                if badge_text:  # Only add non-empty badges
+                    badges.append(badge_text)
+            
+            logger.debug("Found %d feature badges: %s", len(badges), badges)
+            return badges
+            
+        except Exception as e:
+            logger.warning("Error extracting feature badges: %s", str(e))
+            return []
 
     def _normalize_text(self, text: str) -> str:
         """Normalize text to a single line by handling whitespace and special characters.
