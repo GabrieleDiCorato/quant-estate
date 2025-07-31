@@ -70,7 +70,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
                         listings.append(id)
 
                     except Exception as e:
-                        print(f"Errore processando annuncio: {e}")
+                        logger.warning(f"Error processing listing: {e}")
                         continue
 
                 total_listings += len(listings)
@@ -92,10 +92,10 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
                 # Fai stop se hai già tanti annunci
                 if total_listings >= 3000 or page_n == 80:
-                    print("Raggiunti 3000 annunci, stop.")
+                    logger.info("Raggiunti 3000 annunci, stop.")
                     break
 
-            print("Fatto! Totale annunci raccolti:", total_listings)
+            logger.info("Fatto! Totale annunci raccolti: %d", total_listings)
 
     @staticmethod
     def extract_listing_id(url: str) -> str | None:
@@ -149,8 +149,10 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
 
 # uv run --env-file sources/resources/config.dev.env sources/scrapers/immobiliare/scraper_ids.py
+# See im_pipeline_ids.ipynb for a more interactive usage and extensive configuration using env variables and config files.
 if __name__ == "__main__":  
-    logging_utils.setup_logging(config_path='sources/resources/logging.yaml')
+    logging_utils.setup_logging(config_path="sources/resources/logging.yaml")
+
     storage: Storage = FileStorage(ListingId, CsvStorageSettings())
     scraper = ImmobiliareIdScraper(
         storage,
