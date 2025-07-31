@@ -72,7 +72,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
             else:
                 logger.info("Successfully opened characteristics dialog, ready for data extraction")
 
-            
+                # In your scrape() method, after opening the dialog:
+                characteristics = self._extract_characteristics(dialog_element)
+                logger.info("Extracted characteristics: %s", characteristics)
 
     def _get_element(self, driver, by: str, value: str):
         """Helper method to get an element by its locator."""
@@ -191,15 +193,55 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "div.nd-dialogFrame__container"))
             )
             logger.info("Successfully found characteristics dialog")
-            
+
             # Small wait to ensure dialog is fully loaded
             self._realistic_wait()
-            
+
             return dialog_element
 
         except Exception as e:
             logger.warning("Error opening characteristics dialog: %s", str(e))
             return None
+
+    def _extract_characteristics(self, dialog_element: WebElement) -> dict[str, str]:
+        """Extract all key-value pairs from the characteristics dialog.
+        
+        Args:
+            dialog_element: The dialog container WebElement
+            
+        Returns:
+            dict[str, str]: Dictionary with characteristic names as keys and values as values
+        """
+        characteristics = {}
+
+        try:
+            # Find all feature containers within the dialog
+            feature_elements = dialog_element.find_elements(By.CSS_SELECTOR, "div.styles_ld-primaryFeaturesDialogSection__feature__Maf3F")
+            logger.debug("Found %d characteristic features in dialog", len(feature_elements))
+
+            for feature in feature_elements:
+                try:
+                    # Extract the key (dt element)
+                    key_element = feature.find_element(By.CSS_SELECTOR, "dt.styles_ld-primaryFeaturesDialogSection__featureTitle__VI7c0")
+                    key = self._normalize_text(key_element.text)
+
+                    # Extract the value (dd element)
+                    value_element = feature.find_element(By.CSS_SELECTOR, "dd.styles_ld-primaryFeaturesDialogSection__featureDescription__G9ZGQ")
+                    value = self._normalize_text(value_element.text)
+
+                    if key and value:  # Only add non-empty pairs
+                        characteristics[key] = value
+
+                except Exception as feature_error:
+                    logger.warning("Error extracting feature: %s", str(feature_error))
+                    continue
+
+            logger.info("Successfully extracted %d characteristics", len(characteristics))
+            return characteristics
+
+        except Exception as e:
+            logger.error("Error extracting characteristics from dialog: %s", str(e))
+            return characteristics
 
     def to_next_page(self, driver, current_page: int) -> bool:
         raise NotImplementedError("Pagination is not defined while scraping a specific listing")
