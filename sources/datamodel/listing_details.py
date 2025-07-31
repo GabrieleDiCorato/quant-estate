@@ -12,7 +12,7 @@ class ListingDetails(QuantEstateDataObject):
 
     # Core identifier
     listing_id: ListingId = Field(..., description="Unique identifier for the property listing")
-    last_updated: date = Field(..., description="Timestamp of the last update to the listing")
+    last_updated: date | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing
     # Filtering only valid prices (no price upon demand)
@@ -45,11 +45,12 @@ class ListingDetails(QuantEstateDataObject):
     garden: bool | None = Field(None, description="Whether property has a garden")
     cellar: bool | None = Field(None, description="Whether property has a cellar") # "Cantina"
     basement: bool | None = Field(None, description="Whether property has a basement")
-    furnished: bool | None = Field(None, description="Whether property is furnished")
+    furnished: str | None = Field(None, description="Whether property is furnished")
+    kitchen: str | None = Field(None, description="Type of kitchen (open, closed, etc.)")
 
     # Building Info
     build_year: int | None = Field(None, description="Year the building was constructed", ge=1800, le=2100)
-    considerge: bool | None = Field(None, description="Whether building has a concierge service")
+    concierge: bool | None = Field(None, description="Whether building has a concierge service")
     is_accessible: bool | None = Field(None, description="Whether the property is accessible for people with disabilities")
 
     # Energy and utilities

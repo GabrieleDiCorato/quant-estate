@@ -5,11 +5,12 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.remote.webelement import WebElement
 import re
 import random
-from datetime import datetime
+from datetime import datetime, date
 
 from sources.config.model.storage_settings import CsvStorageSettings
-from sources.datamodel.enumerations import Source
+from sources.datamodel.enumerations import Source, EnergyClass
 from sources.datamodel.listing_id import ListingId
+from sources.datamodel.listing_details import ListingDetails
 from sources.logging import logging_utils
 from sources.scrapers.selenium_scraper import SeleniumScraper
 from sources.storage.abstract_storage import Storage
@@ -59,7 +60,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
             driver.execute_script(f"window.scrollTo(0, {random.randint(100, 700)});")
 
             # Extract main components
-            title: str = self._get_title(driver)
             price: str = self._get_price(driver)
             location_parts: list[str] = self._get_location(driver)
 
@@ -87,6 +87,23 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             # Extract characteristics from the dialog
             characteristics = self._extract_characteristics(dialog_element)
+
+        # Build ListingDetails object
+        listing_details = self._build_listing_details(
+            price=price,
+            location_parts=location_parts,
+            last_update_date=last_update_date,
+            feature_badges=feature_badges,
+            energy_class=energy_class,
+            maintenance_fee=maintenance_fee,
+            description_title=description_title,
+            extended_description=extended_description,
+            characteristics=characteristics
+        )
+
+        logger.info("Successfully created ListingDetails object")
+        self.storage.append_data([listing_details])
+        logger.info("Completed!")
 
     def _get_element(self, driver, by: str, value: str):
         """Helper method to get an element by its locator."""
@@ -151,11 +168,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
             logger.warning("Error extracting description: %s", str(e))
             return ("", "")
 
-    def _get_last_update_date(self, driver) -> str | None:
+    def _get_last_update_date(self, driver) -> date | None:
         """Extract the last update date from the listing page.
         
         Returns:
-            str: Date in YYYY-MM-DD format, or None if not found
+            date: Date object, or None if not found
         """
 
         try:
@@ -171,12 +188,10 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             if match:
                 day, month, year = match.groups()
-                # Convert to datetime object for validation and standardization
-                date_obj = datetime(int(year), int(month), int(day))
-                # Return in ISO format (YYYY-MM-DD)
-                iso_date = date_obj.strftime('%Y-%m-%d')
-                logger.info("Parsed last update date: %s -> %s", match.group(0), iso_date)
-                return iso_date
+                # Convert to date object for validation and standardization
+                date_obj = date(int(year), int(month), int(day))
+                logger.info("Parsed last update date: %s -> %s", match.group(0), date_obj)
+                return date_obj
             else:
                 logger.warning("No date pattern found in text: %s", last_update_text)
                 return None
@@ -366,6 +381,283 @@ class ImmobiliareListingScraper(SeleniumScraper):
         except Exception as e:
             logger.error("Error extracting characteristics from dialog: %s", str(e))
             return characteristics
+
+    def _build_listing_details(
+        self,
+        price: str,
+        location_parts: list[str],
+        last_update_date: date | None,
+        feature_badges: list[str],
+        energy_class: str | None,
+        maintenance_fee: str | None,
+        description_title: str,
+        extended_description: str,
+        characteristics: dict[str, str]
+    ) -> ListingDetails:
+        """Build a ListingDetails object from extracted data using class builder pattern.
+        
+        Args:
+            All extracted data from the scraping process
+            
+        Returns:
+            ListingDetails: Validated ListingDetails object
+            
+        Raises:
+            ValueError: If required fields are missing or invalid
+        """
+        try:
+            # Validate required fields first
+            self._validate_required_fields(
+                price=price,
+                location_parts=location_parts,
+                description_title=description_title,
+                extended_description=extended_description,
+                characteristics=characteristics
+            )
+
+            # Parse location (format: [City, Quarter, Row])
+            city = location_parts[0] if location_parts else None
+            country = "IT"
+            address = ", ".join(location_parts) if location_parts else None
+
+            # Parse price (e.g., "€ 300.000" -> 300000.0)
+            price_eur = self._parse_price(price)
+
+            # Parse surface (e.g., "35 m²" -> 35.0)
+            surface_formatted = characteristics.get("Superficie")
+            if not surface_formatted:
+                raise ValueError("Surface information is required but not found in characteristics")
+            surface = self._parse_surface(surface_formatted)
+
+            # Extract property type and contract - required fields
+            property_type = characteristics.get("Tipologia")
+            if not property_type:
+                raise ValueError("Property type (Tipologia) is required but not found in characteristics")
+
+            contract = characteristics.get("Contratto")
+            if not contract:
+                raise ValueError("Contract type (Contratto) is required but not found in characteristics")
+
+            # Build the ListingDetails object using class constructor
+            return ListingDetails(
+                # Core identifier
+                listing_id=self.listing_id,
+                last_updated=last_update_date,
+                
+                # Pricing - required fields
+                formatted_price=price,
+                price_eur=price_eur,
+                formatted_maintenance_fee=maintenance_fee,
+                maintenance_fee=self._parse_maintenance_fee(maintenance_fee),
+                
+                # Property classification - required fields
+                type=property_type,
+                contract=contract,
+                condition=characteristics.get("Stato"),
+                is_new=None,  # Not directly available
+                is_luxury=self._detect_luxury(characteristics, feature_badges),
+                
+                # Property details - surface_formatted is required
+                surface_formatted=surface_formatted,
+                surface=surface,
+                rooms=self._parse_int(characteristics.get("Locali")),
+                floor=characteristics.get("Piano"),
+                total_floors=self._parse_int(characteristics.get("Piani edificio")),
+                
+                # Composition
+                bathrooms=self._parse_int(characteristics.get("Bagni")),
+                bedrooms=self._parse_int(characteristics.get("Camere da letto")),
+                balcony=self._parse_yes_no(characteristics.get("Balcone")),
+                terrace=self._parse_yes_no(characteristics.get("Terrazzo")),
+                elevator=self._parse_yes_no(characteristics.get("Ascensore")),
+                garden=self._parse_garden(characteristics.get("Giardino")),
+                cellar=self._parse_yes_no(characteristics.get("Cantina")),
+                basement=None,  # Not directly available
+                furnished=characteristics.get("Arredato"),
+                kitchen=characteristics.get("Cucina"),
+                
+                # Building Info
+                build_year=self._parse_int(characteristics.get("Anno di costruzione")),
+                concierge=self._parse_concierge(characteristics.get("Servizio portineria")),
+                is_accessible=self._parse_yes_no(characteristics.get("Accesso disabili")),
+                
+                # Energy and utilities
+                heating_type=characteristics.get("Riscaldamento"),
+                air_conditioning=characteristics.get("Climatizzazione"),
+                energy_class=self._parse_energy_class(energy_class),
+                
+                # Location - required fields
+                city=city,
+                country=country,
+                address=address,
+                
+                # Parking
+                parking_info=characteristics.get("Box, posti auto"),
+                
+                # Extended description - required fields
+                description_title=description_title,
+                description=extended_description,
+                other_amenities=feature_badges if feature_badges else None,
+            )
+
+        except Exception as e:
+            logger.error("Error building ListingDetails: %s", str(e))
+            raise ValueError(f"Failed to build ListingDetails: {e}") from e
+
+    def _validate_required_fields(
+        self,
+        price: str,
+        location_parts: list[str],
+        description_title: str,
+        extended_description: str,
+        characteristics: dict[str, str]
+    ) -> None:
+        """Validate that all required fields are present and non-empty.
+        
+        Args:
+            All required data for ListingDetails construction
+            
+        Raises:
+            ValueError: If any required field is missing or empty
+        """
+        if not price or not price.strip():
+            raise ValueError("Price is required but empty or None")
+
+        if not location_parts or len(location_parts) == 0:
+            raise ValueError("Location parts are required but empty or None")
+
+        if not description_title or not description_title.strip():
+            raise ValueError("Description title is required but empty or None")
+
+        if not extended_description or not extended_description.strip():
+            raise ValueError("Extended description is required but empty or None")
+
+        if not characteristics:
+            raise ValueError("Characteristics dictionary is required but empty or None")
+
+        # Check for essential characteristics
+        required_characteristics = ["Tipologia", "Contratto", "Superficie"]
+        for req_char in required_characteristics:
+            if req_char not in characteristics or not characteristics[req_char]:
+                raise ValueError(f"Required characteristic '{req_char}' is missing or empty")
+
+    def _parse_price(self, price_str: str) -> float:
+        """Parse price string to float."""
+        try:
+            # Remove currency symbols and spaces, replace dots with nothing for thousands
+            clean_price = re.sub(r'[€\s]', '', price_str)
+            # Handle format like "300.000" -> 300000
+            clean_price = clean_price.replace('.', '')
+            return float(clean_price)
+        except (ValueError, AttributeError):
+            logger.warning("Could not parse price: %s", price_str)
+            raise ValueError(f"Invalid price format: {price_str}") from None
+
+    def _parse_maintenance_fee(self, fee_str: str | None) -> float | None:
+        """Parse maintenance fee string to float (monthly)."""
+        if not fee_str:
+            return None
+        try:
+            # Extract number from string like "€ 70/mese"
+            numbers = re.findall(r'\d+', fee_str)
+            if numbers:
+                fee = float(numbers[0])
+                # Check if it's already monthly
+                if 'mese' in fee_str.lower() or 'month' in fee_str.lower():
+                    return fee
+                elif 'anno' in fee_str.lower() or 'year' in fee_str.lower():
+                    return fee / 12  # Convert yearly to monthly
+                else:
+                    return fee  # Assume monthly if no unit specified
+        except (ValueError, AttributeError):
+            logger.warning("Could not parse maintenance fee: %s", fee_str)
+        return None
+
+    def _parse_surface(self, surface_str: str) -> float | None:
+        """Parse surface string to float."""
+        if not surface_str:
+            return None
+        try:
+            # Extract number from string like "35 m²"
+            numbers = re.findall(r'\d+', surface_str)
+            if numbers:
+                return float(numbers[0])
+        except (ValueError, AttributeError):
+            logger.warning("Could not parse surface: %s", surface_str)
+            raise ValueError(f"Invalid surface format: {surface_str}")
+
+    def _parse_energy_class(self, energy_class_str: str | None) -> EnergyClass | None:
+        """Parse energy class string to EnergyClass enum."""
+        if not energy_class_str:
+            return None
+        try:
+            # Handle special cases like A+
+            if energy_class_str == "A+":
+                return EnergyClass.AP
+            return EnergyClass(energy_class_str)
+        except (ValueError, AttributeError):
+            logger.warning("Could not parse energy class: %s", energy_class_str)
+        return None
+
+    def _parse_int(self, value_str: str | None) -> int | None:
+        """Parse string to int."""
+        if not value_str:
+            return None
+        try:
+            # Extract first number from string
+            numbers = re.findall(r'\d+', value_str)
+            if numbers:
+                return int(numbers[0])
+        except (ValueError, AttributeError):
+            pass
+        return None
+
+    def _parse_yes_no(self, value_str: str | None) -> bool | None:
+        """Parse Yes/No string to boolean."""
+        if not value_str:
+            return None
+        value_lower = value_str.lower()
+        if 'sì' in value_lower or 'si' in value_lower or 'yes' in value_lower:
+            return True
+        elif 'no' in value_lower:
+            return False
+        return None
+
+    def _parse_garden(self, garden_str: str | None) -> bool | None:
+        """Parse garden string to boolean."""
+        if not garden_str:
+            return None
+        if 'nessun' in garden_str.lower() or 'no' in garden_str.lower():
+            return False
+        return True
+
+    def _parse_concierge(self, concierge_str: str | None) -> bool | None:
+        """Parse concierge service string to boolean."""
+        if not concierge_str:
+            return None
+        if 'portiere' in concierge_str.lower():
+            return True
+        return False
+
+    def _detect_luxury(self, characteristics: dict[str, str], feature_badges: list[str]) -> bool | None:
+        """Detect if property is luxury based on characteristics and features."""
+        luxury_indicators = [
+            'signorile', 'luxury', 'prestigioso', 'lusso', 'pregiato'
+        ]
+
+        # Check in property type
+        prop_type = characteristics.get("Tipologia", "").lower()
+        for indicator in luxury_indicators:
+            if indicator in prop_type:
+                return True
+
+        # Check in feature badges
+        for badge in feature_badges:
+            for indicator in luxury_indicators:
+                if indicator in badge.lower():
+                    return True
+
+        return None
 
     def to_next_page(self, driver, current_page: int) -> bool:
         raise NotImplementedError("Pagination is not defined while scraping a specific listing")
