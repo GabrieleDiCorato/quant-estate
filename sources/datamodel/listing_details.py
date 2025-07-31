@@ -1,6 +1,7 @@
 """
 Data model for real estate properties.
 """
+from datetime import date
 from pydantic import Field
 from .base_datamodel import QuantEstateDataObject
 from .listing_id import ListingId
@@ -11,6 +12,7 @@ class ListingDetails(QuantEstateDataObject):
 
     # Core identifier
     listing_id: ListingId = Field(..., description="Unique identifier for the property listing")
+    last_updated: date = Field(..., description="Timestamp of the last update to the listing")
 
     # Pricing
     # Filtering only valid prices (no price upon demand)

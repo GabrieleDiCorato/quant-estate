@@ -62,19 +62,23 @@ class ImmobiliareListingScraper(SeleniumScraper):
             price: str = self._get_price(driver)
             location_parts: list[str] = self._get_location(driver)
 
+            # Extract last update date
+            last_update_date = self._get_last_update_date(driver)
+
             # Extract description title and extended description
             description_title, extended_description = self._get_description(driver)
 
             # Open characteristics dialog
             dialog_element = self._open_characteristics_dialog(driver)
             if dialog_element is None:
-                logger.warning("Failed to open characteristics dialog, skipping characteristics extraction.")
-            else:
-                logger.info("Successfully opened characteristics dialog, ready for data extraction")
+                logger.error("Failed to open characteristics dialog, skipping characteristics extraction.")
+                raise ValueError("Failed to open characteristics dialog, cannot extract property details.") 
 
-                # In your scrape() method, after opening the dialog:
-                characteristics = self._extract_characteristics(dialog_element)
-                logger.info("Extracted characteristics: %s", characteristics)
+            logger.info("Successfully opened characteristics dialog, ready for data extraction")
+
+            # In your scrape() method, after opening the dialog:
+            characteristics = self._extract_characteristics(dialog_element)
+            logger.info("Extracted characteristics: %s", characteristics)
 
     def _get_element(self, driver, by: str, value: str):
         """Helper method to get an element by its locator."""
@@ -138,6 +142,42 @@ class ImmobiliareListingScraper(SeleniumScraper):
         except Exception as e:
             logger.warning("Error extracting description: %s", str(e))
             return ("", "")
+
+    def _get_last_update_date(self, driver) -> str | None:
+        """Extract the last update date from the listing page.
+        
+        Returns:
+            str: Date in YYYY-MM-DD format, or None if not found
+        """
+        from datetime import datetime
+
+        try:
+            # Find the last update element
+            last_update_element = driver.find_element(By.CSS_SELECTOR, "div.styles_ld-lastUpdate__0G31u span.styles_ld-lastUpdate__text__KLqrs")
+            last_update_text = last_update_element.text.strip()
+
+            logger.debug("Found last update text: %s", last_update_text)
+
+            # Extract date using regex pattern for dd/mm/yyyy format
+            import re
+            date_pattern = r'(\d{1,2})/(\d{1,2})/(\d{4})'
+            match = re.search(date_pattern, last_update_text)
+
+            if match:
+                day, month, year = match.groups()
+                # Convert to datetime object for validation and standardization
+                date_obj = datetime(int(year), int(month), int(day))
+                # Return in ISO format (YYYY-MM-DD)
+                iso_date = date_obj.strftime('%Y-%m-%d')
+                logger.info("Parsed last update date: %s -> %s", match.group(0), iso_date)
+                return iso_date
+            else:
+                logger.warning("No date pattern found in text: %s", last_update_text)
+                return None
+
+        except Exception as e:
+            logger.warning("Error extracting last update date: %s", str(e))
+            return None
 
     def _normalize_text(self, text: str) -> str:
         """Normalize text to a single line by handling whitespace and special characters.
