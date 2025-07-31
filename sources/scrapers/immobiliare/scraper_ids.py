@@ -1,12 +1,10 @@
 import logging
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
-import time
+import re
 import random
 
 from sources.config.model.storage_settings import CsvStorageSettings
-from sources.datamodel.enumerations import Source
 from sources.datamodel.listing_id import ListingId
 from sources.logging import logging_utils
 from sources.scrapers.selenium_scraper import SeleniumScraper
@@ -37,9 +35,10 @@ class ImmobiliareIdScraper(SeleniumScraper):
             # Navigate to the initial page
             logger.info("Navigating to scrape URL: %s", self.scrape_url)
             self.get_page(driver, self.scrape_url)
-            page_n = 1
+
             total_listings = 0
             while True:
+                page_n = self._get_current_page_number(driver)
                 logger.info(f"Scraping page {page_n}...")
 
                 # Random scroll before scraping
@@ -88,14 +87,12 @@ class ImmobiliareIdScraper(SeleniumScraper):
                     logger.error("No more pages to scrape or button not found.")
                     break
 
-                page_n += 1
-
-                # Fai stop se hai già tanti annunci
+                # Stop condition
                 if total_listings >= 3000 or page_n == 80:
                     logger.info("Raggiunti 3000 annunci, stop.")
                     break
 
-            logger.info("Fatto! Totale annunci raccolti: %d", total_listings)
+            logger.info("Done! Total listing IDs scraped: %d", total_listings)
 
     @staticmethod
     def extract_listing_id(url: str) -> str | None:
@@ -146,6 +143,29 @@ class ImmobiliareIdScraper(SeleniumScraper):
         except Exception as e:
             logger.error(f"Navigation error: {e}")
             return False
+
+    def _get_current_page_number(self, driver) -> int:
+        """Extract current page number from URL.
+
+        Args:
+            driver: WebDriver instance
+
+        Returns:
+            Current page number (1 if no pag= parameter found)
+        """
+        current_url = driver.current_url
+        logger.debug("Current URL: %s", current_url)
+
+        # Look for pag= parameter in URL
+        match = re.search(r"pag=(\d+)", current_url)
+
+        if match:
+            page_number = int(match.group(1))
+            logger.debug("Extracted page number from URL: %d", page_number)
+            return page_number
+        else:
+            logger.debug("No pag= parameter found in URL, assuming page 1")
+            return 1
 
 
 # uv run --env-file sources/resources/config.dev.env sources/scrapers/immobiliare/scraper_ids.py
