@@ -16,22 +16,30 @@ from .exceptions import (
     ConfigurationError
 )
 from .storage import Storage, FileStorage, MongoDBStorage
+from .scrapers import SeleniumScraper, ImmobiliareIdScraper, ImmobiliareListingScraper
 
 __all__ = [
-    'ConfigManager',
-    'setup_logging',
-    'get_logger',
-    'ListingDetails',
-    'ListingId',
-    'QuantEstateDataObject',
-    'ContractType',
-    'ConnectorError',
-    'ScrapingError',
-    'StorageError',
-    'ValidationError',
-    'ConfigurationError',
-    'Storage',
-    'FileStorage',
-    'MongoDBStorage',
-    '__version__'
+    "ConfigManager",
+    "setup_logging",
+    "get_logger",
+    "ListingDetails",
+    "ListingId",
+    "QuantEstateDataObject",
+    "ContractType",
+    "ConnectorError",
+    "ScrapingError",
+    "StorageError",
+    "ValidationError",
+    "ConfigurationError",
+    "Storage",
+    "FileStorage",
+    "MongoDBStorage",
+    "CsvStorageSettings",
+    "MongoStorageSettings",
+    "StorageSettings",
+    "StorageType",
+    "SeleniumScraper",
+    "ImmobiliareIdScraper",
+    "ImmobiliareListingScraper",
+    "__version__",
 ]

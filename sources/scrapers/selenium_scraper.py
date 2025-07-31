@@ -126,7 +126,7 @@ class SeleniumScraper(ABC):
         logger.info("Visiting homepage to initialize session...")
         self.get_page(driver, self.base_url)
         # Wait for the manual captcha solving or any initial loading
-        time.sleep(random.uniform(5, 10))
+        # time.sleep(random.uniform(5, 10))
         # Wait for cookies to load and close them
         self._close_cookies(driver)
         self._realistic_wait()
@@ -154,7 +154,7 @@ class SeleniumScraper(ABC):
                 WebDriverWait(driver, self.implicit_wait).until(
                     EC.presence_of_element_located((by, locator))
                 )
-                logger.debug("Found expected element: %s", locator)
+                logger.debug("Successfully waited for element: %s", locator)
 
         except TimeoutException as e:
             logger.error("Timeout loading page %s: %s", url, str(e))
@@ -210,17 +210,52 @@ class SeleniumScraper(ABC):
         """
         # Try to dismiss any cookie banners or popups
         try:
-            wait = WebDriverWait(driver, 10)
+            logging.info("Attempting to close cookies banner...")
             # Wait for the specific Didomi cookies button to be present and clickable
-            accept_btn = wait.until(
+            accept_btn = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
             )
             accept_btn.click()
             logger.info("Successfully clicked cookies accept button")
         except TimeoutException:
-            logger.warning("Didomi cookies button not found within timeout")
+            logger.warning("Cookies button not found within timeout")
         except Exception as e:
             logger.warning("Failed to close cookies banner: %s", str(e))
+
+    def _close_login_popup(self, driver: uc.Chrome) -> None:
+        """Close the login popup if it appears."""
+        try:
+            logger.info("Waiting to close login popup...")
+            # Wait for the login popup to appear
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "div.ab-in-app-message.ab-modal")
+                )
+            )
+            # Find and click the close button
+            logger.info("Attempting to close login popup...")
+            close_button = driver.find_element(By.CSS_SELECTOR, "button.ab-close-button")
+            self._realistic_wait()  # Wait before clicking
+            close_button.click()
+            logger.info("Closed login popup")
+        except TimeoutException:
+            logger.warning("Login popup did not appear")
+        except Exception as e:
+            logger.warning("Error closing login popup: %s", str(e))
+            # Click on a random safe location to dismiss any remaining overlays
+            try:
+                # Get page dimensions
+                viewport_width = driver.execute_script("return window.innerWidth")
+                viewport_height = driver.execute_script("return window.innerHeight")
+                
+                # Click on a safe area (center region, avoiding edges)
+                safe_x = random.randint(int(viewport_width * 0.3), int(viewport_width * 0.7))
+                safe_y = random.randint(int(viewport_height * 0.3), int(viewport_height * 0.7))
+                
+                driver.execute_script(f"document.elementFromPoint({safe_x}, {safe_y}).click();")
+                logger.debug("Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y)
+            except Exception as click_error:
+                logger.error("Could not click on safe location: %s", str(click_error))
 
     @abstractmethod
     def to_next_page(self, driver, current_page: int) -> bool:

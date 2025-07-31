@@ -51,6 +51,7 @@ class ListingDetails(QuantEstateDataObject):
     is_accessible: bool | None = Field(None, description="Whether the property is accessible for people with disabilities")
 
     # Extedend description
+    description_title: str = Field(..., description="Title in the property description")
     description: str = Field(..., description="Property description")
     other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
 
