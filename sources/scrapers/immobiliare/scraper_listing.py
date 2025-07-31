@@ -68,7 +68,12 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             # Extract feature badges
             feature_badges = self._get_feature_badges(driver)
-            logger.info("Extracted feature badges: %s", feature_badges)
+
+            # Extract energy class
+            energy_class = self._get_energy_class(driver)
+
+            # Extract maintenance fee
+            maintenance_fee = self._get_maintenance_fee(driver)
 
             # Extract description title and extended description
             description_title, extended_description = self._get_description(driver)
@@ -78,13 +83,10 @@ class ImmobiliareListingScraper(SeleniumScraper):
             if dialog_element is None:
                 logger.error("Failed to open characteristics dialog, skipping characteristics extraction.")
                 raise ValueError("Failed to open characteristics dialog, cannot extract property details.") 
-
             logger.info("Successfully opened characteristics dialog, ready for data extraction")
 
+            # Extract characteristics from the dialog
             characteristics = self._extract_characteristics(dialog_element)
-            logger.info("Extracted characteristics: %s", characteristics)
-
-
 
     def _get_element(self, driver, by: str, value: str):
         """Helper method to get an element by its locator."""
@@ -192,23 +194,74 @@ class ImmobiliareListingScraper(SeleniumScraper):
         try:
             # Find the feature badges container
             badges_container = driver.find_element(By.CSS_SELECTOR, "div.styles_ld-featuresBadges__mJqLG ul.styles_ld-featuresBadges__list__MGuKy")
-            
+
             # Find all badge elements
             badge_elements = badges_container.find_elements(By.CSS_SELECTOR, "li.styles_ld-featuresBadges__badge___8QgZ span.nd-badge")
-            
+
             # Extract text from each badge
             badges = []
             for badge_element in badge_elements:
                 badge_text = self._normalize_text(badge_element.text)
                 if badge_text:  # Only add non-empty badges
                     badges.append(badge_text)
-            
-            logger.debug("Found %d feature badges: %s", len(badges), badges)
+
+            logger.info("Found %d feature badges: %s", len(badges), badges)
             return badges
-            
+
         except Exception as e:
             logger.warning("Error extracting feature badges: %s", str(e))
             return []
+
+    def _get_energy_class(self, driver) -> str | None:
+        """Extract energy class from the listing page.
+        
+        Returns:
+            str: Energy class letter (A, B, C, D, E, F, G, etc.), or None if not found
+        """
+        try:
+            # Find the energy class element using the data-energy-class attribute
+            energy_element = driver.find_element(By.CSS_SELECTOR, "span[data-energy-class]")
+
+            # Get the energy class from the data attribute
+            energy_class = energy_element.get_attribute("data-energy-class")
+
+            if energy_class:
+                energy_class = energy_class.strip().upper()
+                logger.info("Found energy class: %s", energy_class)
+                return energy_class
+            else:
+                logger.warning("Energy class data attribute is empty")
+                return None
+
+        except Exception as e:
+            logger.warning("Error extracting energy class: %s", str(e))
+            return None
+
+    def _get_maintenance_fee(self, driver) -> str | None:
+        """Extract monthly maintenance fee from the listing page.
+        
+        Returns:
+            str: Maintenance fee text (e.g., "€ 70/mese"), or None if not found
+        """
+        try:
+            # Find the costs section
+            costs_section = driver.find_element(By.CSS_SELECTOR, "div[data-tracking-key='costs']")
+
+            # Look for "Spese condominio" entry
+            maintenance_elements = costs_section.find_elements(By.XPATH, ".//dt[contains(text(), 'Spese condominio')]/following-sibling::dd")
+
+            if maintenance_elements:
+                maintenance_fee = self._normalize_text(maintenance_elements[0].text)
+                if maintenance_fee:
+                    logger.info("Found maintenance fee: %s", maintenance_fee)
+                    return maintenance_fee
+
+            logger.warning("Maintenance fee not found in costs section")
+            return None
+
+        except Exception as e:
+            logger.warning("Error extracting maintenance fee: %s", str(e))
+            return None
 
     def _normalize_text(self, text: str) -> str:
         """Normalize text to a single line by handling whitespace and special characters.
@@ -307,7 +360,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                     logger.warning("Error extracting feature: %s", str(feature_error))
                     continue
 
-            logger.info("Successfully extracted %d characteristics", len(characteristics))
+            logger.info("Extracted characteristics: %s", characteristics)
             return characteristics
 
         except Exception as e:

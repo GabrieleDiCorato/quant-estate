@@ -52,11 +52,6 @@ class ListingDetails(QuantEstateDataObject):
     considerge: bool | None = Field(None, description="Whether building has a concierge service")
     is_accessible: bool | None = Field(None, description="Whether the property is accessible for people with disabilities")
 
-    # Extedend description
-    description_title: str = Field(..., description="Title in the property description")
-    description: str = Field(..., description="Property description")
-    other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
-
     # Energy and utilities
     heating_type: str | None = Field(None, description="Type of heating system")
     air_conditioning: str | None = Field(None, description="Air conditioning type")
@@ -69,6 +64,11 @@ class ListingDetails(QuantEstateDataObject):
 
     # Parking
     parking_info: str | None = Field(None, description="Parking information (garage, street parking, etc.)")
+
+    # Extedend description
+    description_title: str = Field(..., description="Title in the property description")
+    description: str = Field(..., description="Property description")
+    other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingDetails":
