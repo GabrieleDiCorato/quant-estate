@@ -26,15 +26,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
     def __init__(
         self,
         storage: Storage,
-        scrape_url: str,
         listing_id: ListingId,
         base_url: str = BASE_URL,
         **kwargs,
     ):
         """Initialize the Immobiliare scraper with specific settings."""
-        super().__init__(storage, base_url, scrape_url=scrape_url, **kwargs)
-        if not scrape_url.startswith(URL_PREFIX):
-            raise ValueError(f"scrape_url must start with [{URL_PREFIX}], got [{scrape_url}]")
+        super().__init__(storage, base_url, scrape_url=listing_id.url, **kwargs)
+        if not self.scrape_url.startswith(URL_PREFIX):
+            raise ValueError(f"scrape_url must start with [{URL_PREFIX}], got [{self.scrape_url}]")
         self.listing_id = listing_id
 
     def scrape(self):
@@ -296,6 +295,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
         normalized = re.sub(r'\s+', ' ', normalized)
         # Remove any remaining control characters except basic ones
         normalized = re.sub(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]', '', normalized)
+        # Replace commas and semicolons to prevent CSV parsing issues
+        normalized = re.sub(r"[,;]", ".", normalized)
         return normalized
 
     def _open_characteristics_dialog(self, driver) -> WebElement | None:
@@ -416,9 +417,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
             )
 
             # Parse location (format: [City, Quarter, Row])
-            city = location_parts[0] if location_parts else None
+            city = location_parts[0]
             country = "IT"
-            address = ", ".join(location_parts) if location_parts else None
+            address = "/".join(location_parts)
 
             # Parse price (e.g., "€ 300.000" -> 300000.0)
             price_eur = self._parse_price(price)
@@ -441,7 +442,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Build the ListingDetails object using class constructor
             return ListingDetails(
                 # Core identifier
-                listing_id=self.listing_id,
+                id=self.listing_id.id,
                 last_updated=last_update_date,
                 
                 # Pricing - required fields

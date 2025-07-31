@@ -51,7 +51,7 @@ class FileStorage[T: QuantEstateDataObject](Storage[T]):
             field_names.extend(computed_field_names)
 
         with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=field_names)
+            writer = csv.DictWriter(f, fieldnames=field_names, delimiter=";")
             writer.writeheader()
 
         return field_names
@@ -76,7 +76,7 @@ class FileStorage[T: QuantEstateDataObject](Storage[T]):
 
         try:
             with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=self.field_names)
+                writer = csv.DictWriter(f, fieldnames=self.field_names, delimiter=';')
                 writer.writerows([item.model_dump() for item in data])
 
             logger.info("Successfully appended %d records to CSV file", len(data))

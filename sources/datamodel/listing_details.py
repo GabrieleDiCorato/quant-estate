@@ -11,7 +11,7 @@ class ListingDetails(QuantEstateDataObject):
     """Data model for a real estate property."""
 
     # Core identifier
-    listing_id: ListingId = Field(..., description="Unique identifier for the property listing")
+    id: str = Field(..., description="Unique identifier for the property listing")
     last_updated: date | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing
