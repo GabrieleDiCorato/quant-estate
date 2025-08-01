@@ -11,15 +11,21 @@ class ListingDetails(QuantEstateDataObject):
     """Data model for a real estate property."""
 
     # Core identifier
-    id: str = Field(..., description="Unique identifier for the property listing")
+    id: str = Field(..., description="Unique QuantEstate identifier for the property listing")
+    source: str = Field(..., description="Source of the listing data (e.g., IMMOBILIARE)")
+    title: str = Field(..., description="Title of the property listing")
+    url: str = Field(..., description="URL of the property listing")
+    # Timestamp of the last update
     last_updated: date | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing
-    # Filtering only valid prices (no price upon demand)
+    # We only consider listings with transparent offer price (no price upon demand)
     formatted_price: str = Field(..., description="Human-readable price string")
     price_eur: float = Field(..., description="Numeric price value in EUR", ge=0)
     formatted_maintenance_fee: str | None = Field(None, description="Human-readable maintenance fee string")
     maintenance_fee: float | None = Field(None, description="Monthly maintenance fee in EUR", ge=0)
+    formatted_price_sqm: str | None = Field(None, description="Human-readable price per square meter string")
+    price_sqm: float | None = Field(None, description="Price per square meter in EUR", ge=0)
 
     # Property classification
     type: str = Field(..., description="Property type (apartment, house, etc.)")
