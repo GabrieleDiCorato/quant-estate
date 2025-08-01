@@ -63,16 +63,18 @@ class ImmobiliareListingScraper(SeleniumScraper):
             location_parts: list[str] = self._get_location(driver)
 
             # Extract last update date
-            last_update_date = self._get_last_update_date(driver)
+            last_update_date: date | None = self._get_last_update_date(driver)
 
             # Extract feature badges
-            feature_badges = self._get_feature_badges(driver)
+            feature_badges: list[str] = self._get_feature_badges(driver)
 
             # Extract energy class
-            energy_class = self._get_energy_class(driver)
+            energy_class: str | None = self._get_energy_class(driver)
 
             # Extract maintenance fee
-            maintenance_fee = self._get_maintenance_fee(driver)
+            maintenance_fee: str | None = self._get_maintenance_fee(driver)
+
+            price_sqm: str | None = self._get_price_per_sqm(driver)
 
             # Extract description title and extended description
             description_title, extended_description = self._get_description(driver)
@@ -89,10 +91,12 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
         # Build ListingDetails object
         listing_details = self._build_listing_details(
+            listing_id=self.listing_id,
             price=price,
             location_parts=location_parts,
             last_update_date=last_update_date,
             feature_badges=feature_badges,
+            price_sqm=price_sqm,
             energy_class=energy_class,
             maintenance_fee=maintenance_fee,
             description_title=description_title,
@@ -277,6 +281,35 @@ class ImmobiliareListingScraper(SeleniumScraper):
             logger.warning("Error extracting maintenance fee: %s", str(e))
             return None
 
+    def _get_price_per_sqm(self, driver) -> str | None:
+        """Extract price per square meter from the listing page.
+        
+        Returns:
+            str: Price per m² text (e.g., "3.558 €/m²"), or None if not found
+        """
+        try:
+            # Find the price information section
+            price_section = driver.find_element(By.CSS_SELECTOR, "div[data-tracking-key='price-information']")
+
+            # Look for "Prezzo al m²" entry using XPath
+            price_per_sqm_elements = price_section.find_elements(
+                By.XPATH, 
+                ".//dt[contains(text(), 'Prezzo al m²')]/following-sibling::dd"
+            )
+
+            if price_per_sqm_elements:
+                price_per_sqm = self._normalize_text(price_per_sqm_elements[0].text)
+                if price_per_sqm:
+                    logger.info("Found price per m²: %s", price_per_sqm)
+                    return price_per_sqm
+
+            logger.warning("Price per m² not found in price information section")
+            return None
+
+        except Exception as e:
+            logger.warning("Error extracting price per m²: %s", str(e))
+            return None
+
     def _normalize_text(self, text: str) -> str:
         """Normalize text to a single line by handling whitespace and special characters.
         
@@ -385,12 +418,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
     def _build_listing_details(
         self,
+        listing_id: ListingId,
         price: str,
         location_parts: list[str],
         last_update_date: date | None,
         feature_badges: list[str],
         energy_class: str | None,
         maintenance_fee: str | None,
+        price_sqm: str | None,
         description_title: str,
         extended_description: str,
         characteristics: dict[str, str]
@@ -424,6 +459,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Parse price (e.g., "€ 300.000" -> 300000.0)
             price_eur = self._parse_price(price)
 
+            # Parse price per square meter
+            formatted_price_sqm, price_sqm_value = self._parse_price_per_sqm(price_sqm)
+
             # Parse surface (e.g., "35 m²" -> 35.0)
             surface_formatted = characteristics.get("Superficie")
             if not surface_formatted:
@@ -442,29 +480,30 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Build the ListingDetails object using class constructor
             return ListingDetails(
                 # Core identifier
-                id=self.listing_id.id,
+                id=listing_id.id,
+                source=listing_id.source,
+                title=listing_id.title,
+                url=listing_id.url,
                 last_updated=last_update_date,
-                
                 # Pricing - required fields
                 formatted_price=price,
                 price_eur=price_eur,
                 formatted_maintenance_fee=maintenance_fee,
                 maintenance_fee=self._parse_maintenance_fee(maintenance_fee),
-                
+                formatted_price_sqm=formatted_price_sqm,
+                price_sqm=price_sqm_value,
                 # Property classification - required fields
                 type=property_type,
                 contract=contract,
                 condition=characteristics.get("Stato"),
                 is_new=None,  # Not directly available
                 is_luxury=self._detect_luxury(characteristics, feature_badges),
-                
                 # Property details - surface_formatted is required
                 surface_formatted=surface_formatted,
                 surface=surface,
                 rooms=self._parse_int(characteristics.get("Locali")),
                 floor=characteristics.get("Piano"),
                 total_floors=self._parse_int(characteristics.get("Piani edificio")),
-                
                 # Composition
                 bathrooms=self._parse_int(characteristics.get("Bagni")),
                 bedrooms=self._parse_int(characteristics.get("Camere da letto")),
@@ -476,25 +515,20 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 basement=None,  # Not directly available
                 furnished=characteristics.get("Arredato"),
                 kitchen=characteristics.get("Cucina"),
-                
                 # Building Info
                 build_year=self._parse_int(characteristics.get("Anno di costruzione")),
                 concierge=self._parse_concierge(characteristics.get("Servizio portineria")),
                 is_accessible=self._parse_yes_no(characteristics.get("Accesso disabili")),
-                
                 # Energy and utilities
                 heating_type=characteristics.get("Riscaldamento"),
                 air_conditioning=characteristics.get("Climatizzazione"),
                 energy_class=self._parse_energy_class(energy_class),
-                
                 # Location - required fields
                 city=city,
                 country=country,
                 address=address,
-                
                 # Parking
                 parking_info=characteristics.get("Box, posti auto"),
-                
                 # Extended description - required fields
                 description_title=description_title,
                 description=extended_description,
@@ -562,11 +596,12 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Extract number from string like "€ 70/mese"
             numbers = re.findall(r'\d+', fee_str)
             if numbers:
+                fee_str_lower = fee_str.lower()
                 fee = float(numbers[0])
                 # Check if it's already monthly
-                if 'mese' in fee_str.lower() or 'month' in fee_str.lower():
+                if 'mese' in fee_str_lower or 'month' in fee_str_lower:
                     return fee
-                elif 'anno' in fee_str.lower() or 'year' in fee_str.lower():
+                elif 'anno' in fee_str_lower or 'year' in fee_str_lower:
                     return fee / 12  # Convert yearly to monthly
                 else:
                     return fee  # Assume monthly if no unit specified
@@ -586,6 +621,42 @@ class ImmobiliareListingScraper(SeleniumScraper):
         except (ValueError, AttributeError):
             logger.warning("Could not parse surface: %s", surface_str)
             raise ValueError(f"Invalid surface format: {surface_str}")
+
+    def _parse_price_per_sqm(self, price_sqm_str: str | None) -> tuple[str | None, float | None]:
+        """Parse price per square meter string to formatted string and float.
+
+        Args:
+            price_sqm_str: Price per m² string (e.g., "3.558 €/m²")
+
+        Returns:
+            tuple[str | None, float | None]: (formatted_price_sqm, price_sqm_value)
+                - formatted_price_sqm: Simplified format (e.g., "3.558 EUR/sqm")
+                - price_sqm_value: Numeric value as float
+        """
+        if not price_sqm_str:
+            return None, None
+        
+        try:
+            # Extract number from string like "3.558 €/m²" or "3.558,50 €/m²"
+            number_match = re.search(r'(\d{1,3}(?:\.\d{3})*(?:,\d+)?)', price_sqm_str)
+            if number_match:
+                number_str = number_match.group(1)
+                # Convert European format to float: dot=thousands, comma=decimal
+                clean_number = number_str.replace('.', '').replace(',', '.')
+                price_value = float(clean_number)
+                
+                # Create simplified formatted string
+                formatted_price = f"{number_str} EUR/sqm"
+                
+                logger.debug("Parsed price per m²: %s -> %s (%.2f)", price_sqm_str, formatted_price, price_value)
+                return formatted_price, price_value
+            else:
+                logger.warning("Could not extract number from price per m²: %s", price_sqm_str)
+                return None, None
+                
+        except (ValueError, AttributeError) as e:
+            logger.warning("Could not parse price per m²: %s, error: %s", price_sqm_str, str(e))
+            return None, None
 
     def _parse_energy_class(self, energy_class_str: str | None) -> EnergyClass | None:
         """Parse energy class string to EnergyClass enum."""
