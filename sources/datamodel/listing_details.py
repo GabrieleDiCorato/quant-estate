@@ -1,7 +1,7 @@
 """
 Data model for real estate properties.
 """
-from datetime import date
+from datetime import datetime
 from pydantic import Field
 from .base_datamodel import QuantEstateDataObject
 from .listing_id import ListingId
@@ -16,7 +16,7 @@ class ListingDetails(QuantEstateDataObject):
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     # Timestamp of the last update
-    last_updated: date | None = Field(None, description="Timestamp of the last update to the listing")
+    last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing
     # We only consider listings with transparent offer price (no price upon demand)
@@ -77,6 +77,9 @@ class ListingDetails(QuantEstateDataObject):
     description_title: str = Field(..., description="Title in the property description")
     description: str = Field(..., description="Property description")
     other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
+
+
+
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingDetails":

@@ -6,6 +6,7 @@ from selenium.webdriver.remote.webelement import WebElement
 import re
 import random
 from datetime import datetime, date
+from zoneinfo import ZoneInfo
 
 from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.enumerations import Source, EnergyClass
@@ -66,7 +67,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             location_parts: list[str] = self._get_location(driver)
 
             # Extract last update date
-            last_update_date: date | None = self._get_last_update_date(driver)
+            last_update_date: datetime | None = self._get_last_update_date(driver)
 
             # Extract feature badges
             feature_badges: list[str] = self._get_feature_badges(driver)
@@ -179,11 +180,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
             self.logger.debug("Error extracting description", exc_info=True)
             return ("", "")
 
-    def _get_last_update_date(self, driver) -> date | None:
+    def _get_last_update_date(self, driver) -> datetime | None:
         """Extract the last update date from the listing page.
         
         Returns:
-            date: Date object, or None if not found
+            datetime: DateTime object with Rome timezone, or None if not found
         """
 
         try:
@@ -199,10 +200,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             if match:
                 day, month, year = match.groups()
-                # Convert to date object for validation and standardization
-                date_obj = date(int(year), int(month), int(day))
-                self.logger.info("Parsed last update date: %s -> %s", match.group(0), date_obj)
-                return date_obj
+                # Convert to datetime object with Rome timezone
+                rome_tz = ZoneInfo("Europe/Rome")
+                datetime_obj = datetime(int(year), int(month), int(day), tzinfo=rome_tz)
+                self.logger.info("Parsed last update date: %s -> %s", match.group(0), datetime_obj)
+                return datetime_obj
             else:
                 self.logger.warning("No date pattern found in text: %s", last_update_text)
                 return None
@@ -460,7 +462,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         listing_id: ListingId,
         price: str,
         location_parts: list[str],
-        last_update_date: date | None,
+        last_update_date: datetime | None,
         feature_badges: list[str],
         energy_class: str | None,
         maintenance_fee: str | None,
