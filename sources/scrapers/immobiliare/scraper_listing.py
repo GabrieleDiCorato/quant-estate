@@ -76,6 +76,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             price_sqm: str | None = self._get_price_per_sqm(driver)
 
+            # Extract luxury indicator
+            luxury_indicator: bool | None = self._get_luxury_indicator(driver)
+
             # Extract description title and extended description
             description_title, extended_description = self._get_description(driver)
 
@@ -97,6 +100,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             last_update_date=last_update_date,
             feature_badges=feature_badges,
             price_sqm=price_sqm,
+            luxury_indicator=luxury_indicator,
             energy_class=energy_class,
             maintenance_fee=maintenance_fee,
             description_title=description_title,
@@ -316,6 +320,30 @@ class ImmobiliareListingScraper(SeleniumScraper):
             logger.debug("Error extracting price per m²", exc_info=True)
             return None
 
+    def _get_luxury_indicator(self, driver) -> bool | None:
+        """Extract luxury indicator from the main features section.
+        
+        Returns:
+            bool: True if luxury indicator is present, None otherwise
+        """
+        try:
+            # Look for the luxury indicator with diamond icon and "Lusso" text
+            luxury_elements = driver.find_elements(By.XPATH, 
+                "//div[contains(@class, 'styles_ld-mainFeatures__item')]//svg//use[@href='#diamond']/ancestor::div//span[contains(text(), 'Lusso')]"
+            )
+
+            if luxury_elements:
+                logger.info("Found luxury indicator")
+                return True
+            else:
+                logger.info("No luxury indicator found")
+                return None
+
+        except Exception as e:
+            logger.warning("Error extracting luxury indicator: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting luxury indicator", exc_info=True)
+            return None
+
     def _normalize_text(self, text: str) -> str:
         """Normalize text to a single line by handling whitespace and special characters.
         
@@ -434,6 +462,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         energy_class: str | None,
         maintenance_fee: str | None,
         price_sqm: str | None,
+        luxury_indicator: bool | None,
         description_title: str,
         extended_description: str,
         characteristics: dict[str, str]
@@ -507,8 +536,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 type=property_type,
                 contract=contract,
                 condition=characteristics.get("Stato"),
-                is_new=None,  # Not directly available
-                is_luxury=self._detect_luxury(characteristics, feature_badges),
+                is_luxury=luxury_indicator,
                 # Property details - surface_formatted is required
                 surface_formatted=surface_formatted,
                 surface=surface,
@@ -722,26 +750,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
         if 'portiere' in concierge_str.lower():
             return True
         return False
-
-    def _detect_luxury(self, characteristics: dict[str, str], feature_badges: list[str]) -> bool | None:
-        """Detect if property is luxury based on characteristics and features."""
-        luxury_indicators = [
-            'signorile', 'luxury', 'prestigioso', 'lusso', 'pregiato'
-        ]
-
-        # Check in property type
-        prop_type = characteristics.get("Tipologia", "").lower()
-        for indicator in luxury_indicators:
-            if indicator in prop_type:
-                return True
-
-        # Check in feature badges
-        for badge in feature_badges:
-            for indicator in luxury_indicators:
-                if indicator in badge.lower():
-                    return True
-
-        return None
 
     def to_next_page(self, driver, current_page: int) -> bool:
         raise NotImplementedError("Pagination is not defined while scraping a specific listing")

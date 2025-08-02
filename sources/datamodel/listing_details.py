@@ -31,7 +31,8 @@ class ListingDetails(QuantEstateDataObject):
     type: str = Field(..., description="Property type (apartment, house, etc.)")
     contract: str = Field(..., description="Type of contract (sale, rent, etc.)")
     condition: str | None = Field(None, description="Property condition (renovated, new, etc.)")
-    is_new: bool | None = Field(None, description="Whether the property is new construction")
+    # Derived field (from the "Condition" field)
+    #is_new: bool | None = Field(None, description="Whether the property is new construction")
     is_luxury: bool | None = Field(None, description="Whether this is a luxury property")
 
     # Property details
