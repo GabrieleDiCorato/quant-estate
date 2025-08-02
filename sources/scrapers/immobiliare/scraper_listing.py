@@ -168,7 +168,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return title, extended_description
 
         except Exception as e:
-            logger.warning("Error extracting description: %s", str(e))
+            logger.warning("Error extracting description: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting description", exc_info=True)
             return ("", "")
 
     def _get_last_update_date(self, driver) -> date | None:
@@ -200,7 +201,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 return None
 
         except Exception as e:
-            logger.warning("Error extracting last update date: %s", str(e))
+            logger.warning("Error extracting last update date: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting last update date", exc_info=True)
             return None
 
     def _get_feature_badges(self, driver) -> list[str]:
@@ -227,7 +229,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return badges
 
         except Exception as e:
-            logger.warning("Error extracting feature badges: %s", str(e))
+            logger.warning("Error extracting feature badges: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting feature badges", exc_info=True)
             return []
 
     def _get_energy_class(self, driver) -> str | None:
@@ -252,7 +255,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 return None
 
         except Exception as e:
-            logger.warning("Error extracting energy class: %s", str(e))
+            logger.warning("Error extracting energy class: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting energy class", exc_info=True)
             return None
 
     def _get_maintenance_fee(self, driver) -> str | None:
@@ -278,7 +282,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return None
 
         except Exception as e:
-            logger.warning("Error extracting maintenance fee: %s", str(e))
+            logger.warning("Error extracting maintenance fee: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting maintenance fee", exc_info=True)
             return None
 
     def _get_price_per_sqm(self, driver) -> str | None:
@@ -307,7 +312,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return None
 
         except Exception as e:
-            logger.warning("Error extracting price per m²: %s", str(e))
+            logger.warning("Error extracting price per m²: %s", str(e).split('\n')[0])
+            logger.debug("Error extracting price per m²", exc_info=True)
             return None
 
     def _normalize_text(self, text: str) -> str:
@@ -373,7 +379,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return dialog_element
 
         except Exception as e:
-            logger.warning("Error opening characteristics dialog: %s", str(e))
+            logger.warning("Error opening characteristics dialog: %s", str(e).split('\n')[0])
+            logger.debug("Error opening characteristics dialog", exc_info=True)
             return None
 
     def _extract_characteristics(self, dialog_element: WebElement) -> dict[str, str]:
@@ -406,7 +413,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
                         characteristics[key] = value
 
                 except Exception as feature_error:
-                    logger.warning("Error extracting feature: %s", str(feature_error))
+                    logger.warning("Error extracting feature: %s", str(feature_error).split('\n')[0])
+                    logger.debug("Error extracting feature", exc_info=True)
                     continue
 
             logger.info("Extracted characteristics: %s", characteristics)
@@ -462,6 +470,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Parse price per square meter
             formatted_price_sqm, price_sqm_value = self._parse_price_per_sqm(price_sqm)
 
+            # Parse maintenance fee (e.g., "€ 70/mese" -> 70.0)
+            formatted_maintenance, maintenance = self._parse_maintenance_fee(maintenance_fee)
+
             # Parse surface (e.g., "35 m²" -> 35.0)
             surface_formatted = characteristics.get("Superficie")
             if not surface_formatted:
@@ -488,8 +499,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 # Pricing - required fields
                 formatted_price=price,
                 price_eur=price_eur,
-                formatted_maintenance_fee=maintenance_fee,
-                maintenance_fee=self._parse_maintenance_fee(maintenance_fee),
+                formatted_maintenance_fee=formatted_maintenance,
+                maintenance_fee=maintenance,
                 formatted_price_sqm=formatted_price_sqm,
                 price_sqm=price_sqm_value,
                 # Property classification - required fields
@@ -517,8 +528,12 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 kitchen=characteristics.get("Cucina"),
                 # Building Info
                 build_year=self._parse_int(characteristics.get("Anno di costruzione")),
-                concierge=self._parse_concierge(characteristics.get("Servizio portineria")),
-                is_accessible=self._parse_yes_no(characteristics.get("Accesso disabili")),
+                concierge=self._parse_concierge(
+                    characteristics.get("Servizio portineria")
+                ),
+                is_accessible=self._parse_yes_no(
+                    characteristics.get("Accesso disabili")
+                ),
                 # Energy and utilities
                 heating_type=characteristics.get("Riscaldamento"),
                 air_conditioning=characteristics.get("Climatizzazione"),
@@ -635,7 +650,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         """
         if not price_sqm_str:
             return None, None
-        
+
         try:
             # Extract number from string like "3.558 €/m²" or "3.558,50 €/m²"
             number_match = re.search(r'(\d{1,3}(?:\.\d{3})*(?:,\d+)?)', price_sqm_str)
@@ -644,18 +659,19 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 # Convert European format to float: dot=thousands, comma=decimal
                 clean_number = number_str.replace('.', '').replace(',', '.')
                 price_value = float(clean_number)
-                
+
                 # Create simplified formatted string
                 formatted_price = f"{number_str} EUR/sqm"
-                
+
                 logger.debug("Parsed price per m²: %s -> %s (%.2f)", price_sqm_str, formatted_price, price_value)
                 return formatted_price, price_value
             else:
                 logger.warning("Could not extract number from price per m²: %s", price_sqm_str)
                 return None, None
-                
+
         except (ValueError, AttributeError) as e:
-            logger.warning("Could not parse price per m²: %s, error: %s", price_sqm_str, str(e))
+            logger.warning("Could not parse price per m²: %s", str(e).split('\n')[0])
+            logger.debug("Could not parse price per m²", exc_info=True)
             return None, None
 
     def _parse_energy_class(self, energy_class_str: str | None) -> EnergyClass | None:
