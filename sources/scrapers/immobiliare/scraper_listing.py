@@ -528,12 +528,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 kitchen=characteristics.get("Cucina"),
                 # Building Info
                 build_year=self._parse_int(characteristics.get("Anno di costruzione")),
-                concierge=self._parse_concierge(
-                    characteristics.get("Servizio portineria")
-                ),
-                is_accessible=self._parse_yes_no(
-                    characteristics.get("Accesso disabili")
-                ),
+                concierge=self._parse_concierge(characteristics.get("Servizio portineria")),
+                is_accessible=self._parse_yes_no(characteristics.get("Accesso disabili")),
                 # Energy and utilities
                 heating_type=characteristics.get("Riscaldamento"),
                 air_conditioning=characteristics.get("Climatizzazione"),
@@ -603,10 +599,10 @@ class ImmobiliareListingScraper(SeleniumScraper):
             logger.warning("Could not parse price: %s", price_str)
             raise ValueError(f"Invalid price format: {price_str}") from None
 
-    def _parse_maintenance_fee(self, fee_str: str | None) -> float | None:
+    def _parse_maintenance_fee(self, fee_str: str | None) -> tuple[str | None, float | None]:
         """Parse maintenance fee string to float (monthly)."""
         if not fee_str:
-            return None
+            return None, None
         try:
             # Extract number from string like "€ 70/mese"
             numbers = re.findall(r'\d+', fee_str)
@@ -615,14 +611,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 fee = float(numbers[0])
                 # Check if it's already monthly
                 if 'mese' in fee_str_lower or 'month' in fee_str_lower:
-                    return fee
+                    return fee_str, fee
                 elif 'anno' in fee_str_lower or 'year' in fee_str_lower:
-                    return fee / 12  # Convert yearly to monthly
+                    return fee_str, fee / 12  # Convert yearly to monthly
                 else:
-                    return fee  # Assume monthly if no unit specified
+                    return fee_str, fee  # Assume monthly if no unit specified
         except (ValueError, AttributeError):
             logger.warning("Could not parse maintenance fee: %s", fee_str)
-        return None
+        return None, None
 
     def _parse_surface(self, surface_str: str) -> float | None:
         """Parse surface string to float."""
