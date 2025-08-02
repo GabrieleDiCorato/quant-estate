@@ -16,7 +16,6 @@ from sources.scrapers.selenium_scraper import SeleniumScraper
 from sources.storage.abstract_storage import Storage
 from sources.storage.file_storage import FileStorage
 
-logger = logging.getLogger(__name__)
 BASE_URL = "https://www.immobiliare.it/"
 URL_PREFIX = "https://www.immobiliare.it/annunci/"
 
@@ -34,7 +33,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
         super().__init__(storage, base_url, scrape_url=listing_id.url, **kwargs)
         if not self.scrape_url.startswith(URL_PREFIX):
             raise ValueError(f"scrape_url must start with [{URL_PREFIX}], got [{self.scrape_url}]")
+
         self.listing_id = listing_id
+
+        # Create instance-specific logger
+        self.logger = logging.getLogger(f"{__name__}.{self._instance_id}")
 
     def scrape(self):
         """Main scraping method to collect property IDs."""
@@ -44,7 +47,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # self.warmup_driver(driver)
 
             # Navigate to the page
-            logger.info("Navigating to scrape URL: %s", self.scrape_url)
+            self.logger.info("Navigating to scrape URL: %s", self.scrape_url)
             self.get_page(driver, self.scrape_url, wait_for_element=("CSS_SELECTOR", "h1.styles_ld-title__title__Ww2Gb"))
 
             # Close cookies banner if present (already present in warmup_driver)
@@ -85,9 +88,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Open characteristics dialog
             dialog_element = self._open_characteristics_dialog(driver)
             if dialog_element is None:
-                logger.error("Failed to open characteristics dialog, skipping characteristics extraction.")
+                self.logger.error("Failed to open characteristics dialog, skipping characteristics extraction.")
                 raise ValueError("Failed to open characteristics dialog, cannot extract property details.") 
-            logger.info("Successfully opened characteristics dialog, ready for data extraction")
+            self.logger.info("Successfully opened characteristics dialog, ready for data extraction")
 
             # Extract characteristics from the dialog
             characteristics = self._extract_characteristics(dialog_element)
@@ -108,37 +111,37 @@ class ImmobiliareListingScraper(SeleniumScraper):
             characteristics=characteristics
         )
 
-        logger.info("Successfully created ListingDetails object")
+        self.logger.info("Successfully created ListingDetails object")
         self.storage.append_data([listing_details])
-        logger.info("Completed!")
+        self.logger.info("Completed!")
 
     def _get_element(self, driver, by: str, value: str):
         """Helper method to get an element by its locator."""
         try:
             return driver.find_element(by, value)
         except Exception as e:
-            logger.error("Element not found: %s, %s", by, value)
+            self.logger.error("Element not found: %s, %s", by, value)
             raise ValueError(f"Element not found: {by}, {value}") from e
 
     def _get_title(self, driver) -> str:
         title_elem = self._get_element(driver, By.CSS_SELECTOR, "h1.styles_ld-title__title__Ww2Gb")
         title = title_elem.text.strip()
-        logger.debug("Extracted title: %s", title)
+        self.logger.debug("Extracted title: %s", title)
         return title
 
     def _get_price(self, driver) -> str:
         price_elem = self._get_element(driver, By.CSS_SELECTOR, "div.Price_price__mzj0D span")
         price = price_elem.text.strip()
-        logger.debug("Extracted price: %s", price)
+        self.logger.debug("Extracted price: %s", price)
         return price
 
     def _get_location(self, driver) -> list[str]:
         location_spans = driver.find_elements(By.CSS_SELECTOR, "button.styles_ld-blockTitle__link__paCwh span.styles_ld-blockTitle__location__n2mZJ")
         if not location_spans:
-            logger.error("Location elements not found")
+            self.logger.error("Location elements not found")
             raise ValueError("Location elements not found on the page")
         location_parts = [span.text.strip() for span in location_spans]
-        logger.debug("Extracted location: %s", location_parts)
+        self.logger.debug("Extracted location: %s", location_parts)
         return location_parts
 
     def _get_description(self, driver) -> tuple[str, str]:
@@ -166,14 +169,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
             description_container = driver.find_element(By.CSS_SELECTOR, "div.styles_in-readAll__04LDT div")
             extended_description = self._normalize_text(description_container.text)
 
-            logger.debug("Extracted description title: %s", title)
-            logger.debug("Extracted extended description length: %d chars", len(extended_description))
+            self.logger.debug("Extracted description title: %s", title)
+            self.logger.debug("Extracted extended description length: %d chars", len(extended_description))
 
             return title, extended_description
 
         except Exception as e:
-            logger.warning("Error extracting description: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting description", exc_info=True)
+            self.logger.warning("Error extracting description: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting description", exc_info=True)
             return ("", "")
 
     def _get_last_update_date(self, driver) -> date | None:
@@ -188,7 +191,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             last_update_element = driver.find_element(By.CSS_SELECTOR, "div.styles_ld-lastUpdate__0G31u span.styles_ld-lastUpdate__text__KLqrs")
             last_update_text = last_update_element.text.strip()
 
-            logger.debug("Found last update text: %s", last_update_text)
+            self.logger.debug("Found last update text: %s", last_update_text)
 
             # Extract date using regex pattern for dd/mm/yyyy format
             date_pattern = r'(\d{1,2})/(\d{1,2})/(\d{4})'
@@ -198,15 +201,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 day, month, year = match.groups()
                 # Convert to date object for validation and standardization
                 date_obj = date(int(year), int(month), int(day))
-                logger.info("Parsed last update date: %s -> %s", match.group(0), date_obj)
+                self.logger.info("Parsed last update date: %s -> %s", match.group(0), date_obj)
                 return date_obj
             else:
-                logger.warning("No date pattern found in text: %s", last_update_text)
+                self.logger.warning("No date pattern found in text: %s", last_update_text)
                 return None
 
         except Exception as e:
-            logger.warning("Error extracting last update date: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting last update date", exc_info=True)
+            self.logger.warning("Error extracting last update date: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting last update date", exc_info=True)
             return None
 
     def _get_feature_badges(self, driver) -> list[str]:
@@ -229,12 +232,12 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 if badge_text:  # Only add non-empty badges
                     badges.append(badge_text)
 
-            logger.info("Found %d feature badges: %s", len(badges), badges)
+            self.logger.info("Found %d feature badges: %s", len(badges), badges)
             return badges
 
         except Exception as e:
-            logger.warning("Error extracting feature badges: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting feature badges", exc_info=True)
+            self.logger.warning("Error extracting feature badges: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting feature badges", exc_info=True)
             return []
 
     def _get_energy_class(self, driver) -> str | None:
@@ -252,15 +255,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             if energy_class:
                 energy_class = energy_class.strip().upper()
-                logger.info("Found energy class: %s", energy_class)
+                self.logger.info("Found energy class: %s", energy_class)
                 return energy_class
             else:
-                logger.warning("Energy class data attribute is empty")
+                self.logger.warning("Energy class data attribute is empty")
                 return None
 
         except Exception as e:
-            logger.warning("Error extracting energy class: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting energy class", exc_info=True)
+            self.logger.warning("Error extracting energy class: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting energy class", exc_info=True)
             return None
 
     def _get_maintenance_fee(self, driver) -> str | None:
@@ -279,15 +282,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
             if maintenance_elements:
                 maintenance_fee = self._normalize_text(maintenance_elements[0].text)
                 if maintenance_fee:
-                    logger.info("Found maintenance fee: %s", maintenance_fee)
+                    self.logger.info("Found maintenance fee: %s", maintenance_fee)
                     return maintenance_fee
 
-            logger.warning("Maintenance fee not found in costs section")
+            self.logger.warning("Maintenance fee not found in costs section")
             return None
 
         except Exception as e:
-            logger.warning("Error extracting maintenance fee: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting maintenance fee", exc_info=True)
+            self.logger.warning("Error extracting maintenance fee: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting maintenance fee", exc_info=True)
             return None
 
     def _get_price_per_sqm(self, driver) -> str | None:
@@ -309,15 +312,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
             if price_per_sqm_elements:
                 price_per_sqm = self._normalize_text(price_per_sqm_elements[0].text)
                 if price_per_sqm:
-                    logger.info("Found price per m²: %s", price_per_sqm)
+                    self.logger.info("Found price per m²: %s", price_per_sqm)
                     return price_per_sqm
 
-            logger.warning("Price per m² not found in price information section")
+            self.logger.warning("Price per m² not found in price information section")
             return None
 
         except Exception as e:
-            logger.warning("Error extracting price per m²: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting price per m²", exc_info=True)
+            self.logger.warning("Error extracting price per m²: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting price per m²", exc_info=True)
             return None
 
     def _get_luxury_indicator(self, driver) -> bool | None:
@@ -333,15 +336,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
             )
 
             if luxury_elements:
-                logger.info("Found luxury indicator")
+                self.logger.info("Found luxury indicator")
                 return True
             else:
-                logger.info("No luxury indicator found")
+                self.logger.info("No luxury indicator found")
                 return None
 
         except Exception as e:
-            logger.warning("Error extracting luxury indicator: %s", str(e).split('\n')[0])
-            logger.debug("Error extracting luxury indicator", exc_info=True)
+            self.logger.warning("Error extracting luxury indicator: %s", str(e).split('\n')[0])
+            self.logger.debug("Error extracting luxury indicator", exc_info=True)
             return None
 
     def _normalize_text(self, text: str) -> str:
@@ -376,14 +379,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
             WebElement: The dialog container element if found, None if failed
         """
         try:
-            logger.info("Looking for 'Vedi tutte le caratteristiche' button")
+            self.logger.info("Looking for 'Vedi tutte le caratteristiche' button")
             # Find the characteristics button
             characteristics_button = driver.find_element(By.CSS_SELECTOR, "button.styles_ld-primaryFeatures__openDialogButton___8v4x")
 
             # Scroll to the button to ensure it's visible
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", characteristics_button)
             self._realistic_wait()
-            logger.info("Found 'Vedi tutte le caratteristiche' button, clicking it")
+            self.logger.info("Found 'Vedi tutte le caratteristiche' button, clicking it")
 
             # Wait for the button to be clickable
             WebDriverWait(driver, 10).until(
@@ -392,14 +395,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             # Click the button using JavaScript for reliability
             driver.execute_script("arguments[0].click();", characteristics_button)
-            logger.info("Successfully clicked 'Vedi tutte le caratteristiche' button")
+            self.logger.info("Successfully clicked 'Vedi tutte le caratteristiche' button")
 
             # Wait for the dialog to appear and return it
-            logger.info("Waiting for characteristics dialog to appear...")
+            self.logger.info("Waiting for characteristics dialog to appear...")
             dialog_element = WebDriverWait(driver, 10).until(
                 EC.visibility_of_element_located((By.CSS_SELECTOR, "div.nd-dialogFrame__container"))
             )
-            logger.info("Successfully found characteristics dialog")
+            self.logger.info("Successfully found characteristics dialog")
 
             # Small wait to ensure dialog is fully loaded
             self._realistic_wait()
@@ -407,8 +410,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return dialog_element
 
         except Exception as e:
-            logger.warning("Error opening characteristics dialog: %s", str(e).split('\n')[0])
-            logger.debug("Error opening characteristics dialog", exc_info=True)
+            self.logger.warning("Error opening characteristics dialog: %s", str(e).split('\n')[0])
+            self.logger.debug("Error opening characteristics dialog", exc_info=True)
             return None
 
     def _extract_characteristics(self, dialog_element: WebElement) -> dict[str, str]:
@@ -425,7 +428,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         try:
             # Find all feature containers within the dialog
             feature_elements = dialog_element.find_elements(By.CSS_SELECTOR, "div.styles_ld-primaryFeaturesDialogSection__feature__Maf3F")
-            logger.debug("Found %d characteristic features in dialog", len(feature_elements))
+            self.logger.debug("Found %d characteristic features in dialog", len(feature_elements))
 
             for feature in feature_elements:
                 try:
@@ -441,15 +444,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
                         characteristics[key] = value
 
                 except Exception as feature_error:
-                    logger.warning("Error extracting feature: %s", str(feature_error).split('\n')[0])
-                    logger.debug("Error extracting feature", exc_info=True)
+                    self.logger.warning("Error extracting feature: %s", str(feature_error).split('\n')[0])
+                    self.logger.debug("Error extracting feature", exc_info=True)
                     continue
 
-            logger.info("Extracted characteristics: %s", characteristics)
+            self.logger.info("Extracted characteristics: %s", characteristics)
             return characteristics
 
         except Exception as e:
-            logger.error("Error extracting characteristics from dialog: %s", str(e))
+            self.logger.error("Error extracting characteristics from dialog: %s", str(e))
             return characteristics
 
     def _build_listing_details(
@@ -575,7 +578,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             )
 
         except Exception as e:
-            logger.error("Error building ListingDetails: %s", str(e))
+            self.logger.error("Error building ListingDetails: %s", str(e))
             raise ValueError(f"Failed to build ListingDetails: {e}") from e
 
     def _validate_required_fields(
@@ -624,7 +627,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             clean_price = clean_price.replace('.', '')
             return float(clean_price)
         except (ValueError, AttributeError):
-            logger.warning("Could not parse price: %s", price_str)
+            self.logger.warning("Could not parse price: %s", price_str)
             raise ValueError(f"Invalid price format: {price_str}") from None
 
     def _parse_maintenance_fee(self, fee_str: str | None) -> tuple[str | None, float | None]:
@@ -645,7 +648,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 else:
                     return fee_str, fee  # Assume monthly if no unit specified
         except (ValueError, AttributeError):
-            logger.warning("Could not parse maintenance fee: %s", fee_str)
+            self.logger.warning("Could not parse maintenance fee: %s", fee_str)
         return None, None
 
     def _parse_surface(self, surface_str: str) -> float | None:
@@ -658,7 +661,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             if numbers:
                 return float(numbers[0])
         except (ValueError, AttributeError):
-            logger.warning("Could not parse surface: %s", surface_str)
+            self.logger.warning("Could not parse surface: %s", surface_str)
             raise ValueError(f"Invalid surface format: {surface_str}")
 
     def _parse_price_per_sqm(self, price_sqm_str: str | None) -> tuple[str | None, float | None]:
@@ -687,15 +690,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 # Create simplified formatted string
                 formatted_price = f"{number_str} EUR/sqm"
 
-                logger.debug("Parsed price per m²: %s -> %s (%.2f)", price_sqm_str, formatted_price, price_value)
+                self.logger.debug("Parsed price per m²: %s -> %s (%.2f)", price_sqm_str, formatted_price, price_value)
                 return formatted_price, price_value
             else:
-                logger.warning("Could not extract number from price per m²: %s", price_sqm_str)
+                self.logger.warning("Could not extract number from price per m²: %s", price_sqm_str)
                 return None, None
 
         except (ValueError, AttributeError) as e:
-            logger.warning("Could not parse price per m²: %s", str(e).split('\n')[0])
-            logger.debug("Could not parse price per m²", exc_info=True)
+            self.logger.warning("Could not parse price per m²: %s", str(e).split('\n')[0])
+            self.logger.debug("Could not parse price per m²", exc_info=True)
             return None, None
 
     def _parse_energy_class(self, energy_class_str: str | None) -> EnergyClass | None:
@@ -708,7 +711,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 return EnergyClass.AP
             return EnergyClass(energy_class_str)
         except (ValueError, AttributeError):
-            logger.warning("Could not parse energy class: %s", energy_class_str)
+            self.logger.warning("Could not parse energy class: %s", energy_class_str)
         return None
 
     def _parse_int(self, value_str: str | None) -> int | None:

@@ -5,6 +5,7 @@ Selenium-based web scraper base class using undetected-chromedriver.
 import logging
 import random
 import time
+import itertools
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 
@@ -24,6 +25,9 @@ logger = logging.getLogger(__name__)
 class SeleniumScraper(ABC):
     """Abstract base class for Selenium-based web scrapers."""
 
+    # Thread-safe atomic counter (to identify instances)
+    _instance_counter = itertools.count(1)
+
     def __init__(
         self,
         storage: Storage,
@@ -36,31 +40,26 @@ class SeleniumScraper(ABC):
         page_load_timeout: int = 30,
         window_size: tuple[int, int] = (1366, 768),
     ):
-        """Initialize the scraper with configuration.
+        """Initialize the scraper with configuration."""
 
-        Args:
-            config: Configuration dictionary
+        self.storage = storage
+        self.base_url = base_url
+        self.scrape_url = scrape_url
+        self.min_delay = min_delay
+        self.max_delay = max_delay
 
-        Raises:
-            ConfigurationError: If required configuration keys are missing
-        """
-        try:
-            self.storage = storage
-            self.base_url = base_url
-            self.scrape_url = scrape_url
-            self.min_delay = min_delay
-            self.max_delay = max_delay
+        # Undetected Chrome settings
+        self.headless = headless
+        self.implicit_wait = implicit_wait
+        self.page_load_timeout = page_load_timeout
+        self.window_size = window_size
 
-            # Undetected Chrome settings
-            self.headless = headless
-            self.implicit_wait = implicit_wait
-            self.page_load_timeout = page_load_timeout
-            self.window_size = window_size
+        # Get next instance number atomically
+        self._instance_id = next(SeleniumScraper._instance_counter)
 
-            logger.info("Initialized SeleniumScraper with headless: %s", self.headless)
-
-        except KeyError as e:
-            raise ConfigurationError(f"Missing required configuration key: {e}")
+        # Create instance-specific logger
+        self.logger = logging.getLogger(f"{__name__}.{self._instance_id}")
+        self.logger.info("Initialized SeleniumScraper with headless: %s", self.headless)
 
     def _create_driver(self) -> uc.Chrome:
         """Create and configure an undetected Chrome WebDriver instance.
@@ -97,11 +96,11 @@ class SeleniumScraper(ABC):
             driver.implicitly_wait(self.implicit_wait)
             driver.set_page_load_timeout(self.page_load_timeout)
 
-            logger.info("Created undetected Chrome WebDriver instance")
+            self.logger.info("Created undetected Chrome WebDriver instance")
             return driver
 
         except Exception as e:
-            logger.error("Failed to create undetected Chrome WebDriver: %s", str(e), exc_info=True)
+            self.logger.error("Failed to create undetected Chrome WebDriver: %s", str(e), exc_info=True)
             raise ScrapingError(f"Failed to create WebDriver: {e}")
 
     @contextmanager
@@ -117,20 +116,20 @@ class SeleniumScraper(ABC):
         finally:
             try:
                 driver.quit()
-                logger.info("WebDriver session closed")
+                self.logger.info("WebDriver session closed")
             except Exception as e:
-                logger.warning("Error closing WebDriver: %s", str(e))
+                self.logger.warning("Error closing WebDriver: %s", str(e))
 
     def warmup_driver(self, driver):
         # Visit the homepage to get cookies
-        logger.info("Visiting homepage to initialize session...")
+        self.logger.info("Visiting homepage to initialize session...")
         self.get_page(driver, self.base_url)
         # Wait for the manual captcha solving or any initial loading
         # time.sleep(random.uniform(5, 10))
         # Wait for cookies to load and close them
         self._close_cookies(driver)
         self._realistic_wait()
-        logger.info("Session is warmed up!")
+        self.logger.info("Session is warmed up!")
 
     def get_page(self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None) -> None:
         """Navigate to a page and optionally wait for an element.
@@ -144,7 +143,7 @@ class SeleniumScraper(ABC):
             ScrapingError: If there's an error loading the page
         """
         try:
-            logger.info("Navigating to: %s", url)
+            self.logger.info("Navigating to: %s", url)
             driver.get(url)
 
             # Wait for specific element if provided
@@ -154,16 +153,16 @@ class SeleniumScraper(ABC):
                 WebDriverWait(driver, self.implicit_wait).until(
                     EC.presence_of_element_located((by, locator))
                 )
-                logger.debug("Successfully waited for element: %s", locator)
+                self.logger.debug("Successfully waited for element: %s", locator)
 
         except TimeoutException as e:
-            logger.error("Timeout loading page %s: %s", url, str(e))
+            self.logger.error("Timeout loading page %s: %s", url, str(e))
             raise ScrapingError(f"Timeout loading page: {e}")
         except WebDriverException as e:
-            logger.error("WebDriver error loading page %s: %s", url, str(e))
+            self.logger.error("WebDriver error loading page %s: %s", url, str(e))
             raise ScrapingError(f"WebDriver error: {e}")
         except Exception as e:
-            logger.error("Unexpected error loading page %s: %s", url, str(e), exc_info=True)
+            self.logger.error("Unexpected error loading page %s: %s", url, str(e), exc_info=True)
             raise ScrapingError(f"Unexpected error loading page: {e}")
 
     def scroll_to_bottom(self, driver: uc.Chrome, pause_time: float = 1.0) -> None:
@@ -188,7 +187,7 @@ class SeleniumScraper(ABC):
                 break
             last_height = new_height
 
-        logger.debug("Scrolled to bottom of page")
+        self.logger.debug("Scrolled to bottom of page")
 
     def _realistic_wait(self) -> None:
         """Wait with realistic randomization to mimic human behavior."""
@@ -199,7 +198,7 @@ class SeleniumScraper(ABC):
         extra_pause = 0.0 if random.random() >= 0.05 else random.uniform(1.0, 3.0)
         delay = base_delay + jitter_delay + extra_pause
 
-        logger.debug("Realistic wait: %.2f seconds", delay)
+        self.logger.debug("Realistic wait: %.2f seconds", delay)
         time.sleep(delay)
 
     def _close_cookies(self, driver: uc.Chrome) -> None:
@@ -210,22 +209,22 @@ class SeleniumScraper(ABC):
         """
         # Try to dismiss any cookie banners or popups
         try:
-            logging.info("Attempting to close cookies banner...")
+            self.logger.info("Attempting to close cookies banner...")
             # Wait for the specific Didomi cookies button to be present and clickable
             accept_btn = WebDriverWait(driver, 10).until(
                 EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
             )
             accept_btn.click()
-            logger.info("Successfully clicked cookies accept button")
+            self.logger.info("Successfully clicked cookies accept button")
         except TimeoutException:
-            logger.warning("Cookies button not found within timeout")
+            self.logger.warning("Cookies button not found within timeout")
         except Exception as e:
-            logger.warning("Failed to close cookies banner: %s", str(e))
+            self.logger.warning("Failed to close cookies banner: %s", str(e))
 
     def _close_login_popup(self, driver: uc.Chrome) -> None:
         """Close the login popup if it appears."""
         try:
-            logger.info("Waiting to close login popup...")
+            self.logger.info("Waiting to close login popup...")
             # Wait for the login popup to appear
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located(
@@ -233,29 +232,29 @@ class SeleniumScraper(ABC):
                 )
             )
             # Find and click the close button
-            logger.info("Attempting to close login popup...")
+            self.logger.info("Attempting to close login popup...")
             close_button = driver.find_element(By.CSS_SELECTOR, "button.ab-close-button")
             self._realistic_wait()  # Wait before clicking
             close_button.click()
-            logger.info("Closed login popup")
+            self.logger.info("Closed login popup")
         except TimeoutException:
-            logger.warning("Login popup did not appear")
+            self.logger.warning("Login popup did not appear")
         except Exception as e:
-            logger.warning("Error closing login popup: %s", str(e))
+            self.logger.warning("Error closing login popup: %s", str(e))
             # Click on a random safe location to dismiss any remaining overlays
             try:
                 # Get page dimensions
                 viewport_width = driver.execute_script("return window.innerWidth")
                 viewport_height = driver.execute_script("return window.innerHeight")
-                
+
                 # Click on a safe area (center region, avoiding edges)
                 safe_x = random.randint(int(viewport_width * 0.3), int(viewport_width * 0.7))
                 safe_y = random.randint(int(viewport_height * 0.3), int(viewport_height * 0.7))
-                
+
                 driver.execute_script(f"document.elementFromPoint({safe_x}, {safe_y}).click();")
-                logger.debug("Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y)
+                self.logger.debug("Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y)
             except Exception as click_error:
-                logger.error("Could not click on safe location: %s", str(click_error))
+                self.logger.error("Could not click on safe location: %s", str(click_error))
 
     @abstractmethod
     def to_next_page(self, driver, current_page: int) -> bool:
