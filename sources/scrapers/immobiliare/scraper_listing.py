@@ -5,7 +5,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.remote.webelement import WebElement
 import re
 import random
-from datetime import datetime, date
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from sources.config.model.storage_settings import CsvStorageSettings
@@ -145,11 +145,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
         self.logger.debug("Extracted location: %s", location_parts)
         return location_parts
 
-    def _get_description(self, driver) -> tuple[str, str]:
+    def _get_description(self, driver) -> tuple[str | None, str]:
         """Extract description title and extended description.
         
         Returns:
-            tuple[str, str]: (title, extended_description) both normalized to single lines
+            tuple[str | None, str]: (title, extended_description) both normalized to single lines
         """
         try:
             # Scroll to the description section
@@ -157,9 +157,14 @@ class ImmobiliareListingScraper(SeleniumScraper):
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", description_section)
             self._realistic_wait()
 
-            # Extract the description title
-            title_elem = driver.find_element(By.CSS_SELECTOR, "p.styles_ld-descriptionHeading__title__ifRR2")
-            title = self._normalize_text(title_elem.text)
+            # Extract the description title (optional)
+            title = None
+            try:
+                title_elem = driver.find_element(By.CSS_SELECTOR, "p.styles_ld-descriptionHeading__title__ifRR2")
+                title = self._normalize_text(title_elem.text)
+                self.logger.debug("Extracted description title: %s", title)
+            except Exception as title_e:
+                self.logger.debug("Description title not found: %s", str(title_e).split('\n')[0])
 
             # Click the "leggi tutto" button to expand full description
             read_more_button = driver.find_element(By.CSS_SELECTOR, "button.styles_in-readAll__action___B8HW")
@@ -170,7 +175,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
             description_container = driver.find_element(By.CSS_SELECTOR, "div.styles_in-readAll__04LDT div")
             extended_description = self._normalize_text(description_container.text)
 
-            self.logger.debug("Extracted description title: %s", title)
             self.logger.debug("Extracted extended description length: %d chars", len(extended_description))
 
             return title, extended_description
@@ -178,7 +182,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         except Exception as e:
             self.logger.warning("Error extracting description: %s", str(e).split('\n')[0])
             self.logger.debug("Error extracting description", exc_info=True)
-            return ("", "")
+            return (None, "")
 
     def _get_last_update_date(self, driver) -> datetime | None:
         """Extract the last update date from the listing page.
@@ -468,7 +472,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         maintenance_fee: str | None,
         price_sqm: str | None,
         luxury_indicator: bool | None,
-        description_title: str,
+        description_title: str | None,
         extended_description: str,
         characteristics: dict[str, str]
     ) -> ListingDetails:
@@ -587,7 +591,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         self,
         price: str,
         location_parts: list[str],
-        description_title: str,
+        description_title: str | None,
         extended_description: str,
         characteristics: dict[str, str]
     ) -> None:
@@ -604,9 +608,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
         if not location_parts or len(location_parts) == 0:
             raise ValueError("Location parts are required but empty or None")
-
-        if not description_title or not description_title.strip():
-            raise ValueError("Description title is required but empty or None")
 
         if not extended_description or not extended_description.strip():
             raise ValueError("Extended description is required but empty or None")

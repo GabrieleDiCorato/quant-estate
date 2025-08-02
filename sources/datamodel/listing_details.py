@@ -73,12 +73,10 @@ class ListingDetails(QuantEstateDataObject):
     # Parking
     parking_info: str | None = Field(None, description="Parking information (garage, street parking, etc.)")
 
-    # Extedend description
-    description_title: str = Field(..., description="Title in the property description")
+    # Extendend description
+    description_title: str | None = Field(None, description="Title in the property description")
     description: str = Field(..., description="Property description")
     other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
-
-
 
 
     @classmethod

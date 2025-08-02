@@ -11,9 +11,16 @@ class ListingId(QuantEstateDataObject):
     source_id: str = Field(..., description="Identifier for the property in the source system")
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing") 
-    
+
     @computed_field(description="Unique QuantEstate identifier for the listing")
     @cached_property
     def id(self) -> str:
         """Generate a unique identifier for the listing based on source and source_id."""
         return f"{self.source}:{self.source_id}"
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "ListingId":
+        """Create a ListingId instance from a dictionary."""
+        data.pop('_id', None)
+        data.pop('id', None)
+        return ListingId.model_validate(data)

@@ -104,7 +104,8 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
                 collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
                 db_collection = db[collection_str]
 
-                documents = [item.model_dump() for item in data]
+                # Exclude None values from serialization to avoid storing null fields in MongoDB
+                documents = [item.model_dump(exclude_none=True) for item in data]
 
                 # Use insert_many with ordered=False to continue on duplicates
                 try:
