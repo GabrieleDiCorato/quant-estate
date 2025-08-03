@@ -79,10 +79,31 @@ class SeleniumScraper(ABC):
             options.add_argument("--disable-web-security")
             options.add_argument("--allow-running-insecure-content")
             # options.add_argument(f"--window-size={self.window_size[0]},{self.window_size[1]}")
-            options.add_argument("--start-maximized")
+            #options.add_argument("--start-maximized")
+
+            # Disable images to save memory
+            options.add_argument("--disable-images")
+            # Alternative method using preferences
+            prefs = {
+                "profile.managed_default_content_settings.images": 2,  # Block images
+                "profile.default_content_setting_values.notifications": 2,  # Block notifications
+            }
+            options.add_experimental_option("prefs", prefs)
+
+            # Other optimizations
+            options.add_argument("--disable-gpu")
+            options.add_argument("--disable-software-rasterizer")
+            options.add_argument("--disable-background-timer-throttling")
+            options.add_argument("--disable-backgrounding-occluded-windows")
+            options.add_argument("--disable-renderer-backgrounding")
+            options.add_argument("--no-first-run")
+            options.add_argument("--no-default-browser-check")
+            options.add_argument("--disable-extensions")
 
             if self.headless:
                 options.add_argument("--headless=new")  # Use new headless mode
+            else:
+                options.add_argument("--start-maximized")
 
             # Create undetected Chrome driver
             driver = uc.Chrome(
