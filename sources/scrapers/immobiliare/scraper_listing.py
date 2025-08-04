@@ -162,20 +162,15 @@ class ImmobiliareListingScraper(SeleniumScraper):
             try:
                 title_elem = driver.find_element(By.CSS_SELECTOR, "p.styles_ld-descriptionHeading__title__ifRR2")
                 title = self._normalize_text(title_elem.text)
-                self.logger.debug("Extracted description title: %s", title)
+                self.logger.info("Extracted description title: %s", title)
             except Exception as title_e:
                 self.logger.debug("Description title not found: %s", str(title_e).split('\n')[0])
 
-            # Click the "leggi tutto" button to expand full description
-            read_more_button = driver.find_element(By.CSS_SELECTOR, "button.styles_in-readAll__action___B8HW")
-            driver.execute_script("arguments[0].click();", read_more_button)
-            self._realistic_wait()
-
-            # Extract the extended description after expansion
+            # Extract the extended description (click "leggi tutto" if not necessary, the content is pre-loaded)
             description_container = driver.find_element(By.CSS_SELECTOR, "div.styles_in-readAll__04LDT div")
             extended_description = self._normalize_text(description_container.text)
 
-            self.logger.debug("Extracted extended description length: %d chars", len(extended_description))
+            self.logger.info("Extracted extended description length: %d chars", len(extended_description))
 
             return title, extended_description
 
