@@ -2,6 +2,7 @@
 Data model for real estate properties.
 """
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pydantic import Field
 from .base_datamodel import QuantEstateDataObject
 from .listing_id import ListingId
@@ -15,7 +16,8 @@ class ListingDetails(QuantEstateDataObject):
     source: str = Field(..., description="Source of the listing data (e.g., IMMOBILIARE)")
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
-    # Timestamp of the last update
+    # Timestamps
+    fetch_date: datetime | None = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing
