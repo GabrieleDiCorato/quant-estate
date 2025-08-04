@@ -556,7 +556,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 balcony=self._parse_yes_no(characteristics.get("Balcone")),
                 terrace=self._parse_yes_no(characteristics.get("Terrazzo")),
                 elevator=self._parse_yes_no(characteristics.get("Ascensore")),
-                garden=self._parse_garden(characteristics.get("Giardino")),
+                garden=characteristics.get("Giardino"),
                 cellar=self._parse_yes_no(characteristics.get("Cantina")),
                 basement=None,  # Not directly available
                 furnished=characteristics.get("Arredato"),

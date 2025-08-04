@@ -3,6 +3,7 @@ import re
 import random
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.remote.webelement import WebElement
 
 from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.listing_id import ListingId
@@ -48,30 +49,32 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 driver.execute_script(f"window.scrollTo(0, {random.randint(100, 300)});")
                 self._realistic_wait()
 
-                # Find all listing elements
-                elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']")
-                self.logger.info("Found %d listings", len(elements))
+                # Find all listing content containers
+                content_elements: list[WebElement] = driver.find_elements(By.CSS_SELECTOR, "div.styles_in-listingCardPropertyContent__tfu8w")
+                self.logger.info("Found %d listings", len(content_elements))
 
                 listings = []
-                for i, listing in enumerate(elements):
+                for i, content_element in enumerate(content_elements):
                     try:
-                        link = listing.get_attribute("href")
+                        # Find the link within the content container
+                        link_element = content_element.find_element(By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']")
+                        link = link_element.get_attribute("href")
                         if not link:
                             self.logger.warning("Listing without link found, skipping")
                             continue
-                        
-                        # Check if this listing has auction/variable pricing (contains "da" prefix)
-                        if self._is_auction(listing):
-                            self.logger.warning("Listing is auction/variable pricing, skipping: [%s]", link)
-                            continue
 
-                        title = listing.get_attribute("title") or listing.text.strip()
+                        title = link_element.get_attribute("title") or link_element.text.strip()
                         if not title:
                             self.logger.warning("Listing without title found, skipping")
                             continue
                         source_id = ImmobiliareIdScraper.extract_listing_id(link)
                         if not source_id:
                             self.logger.warning("Could not extract ID from link: %s", link)
+                            continue
+
+                        # Validate resolved ID
+                        if self._is_auction(content_element):
+                            self.logger.warning("Skipping auction listing [%s]", link)
                             continue
 
                         id = ListingId(source=SOURCE, source_id=source_id, title=title, url=link)
@@ -105,31 +108,19 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
             self.logger.info("Done! Total listing IDs scraped: %d", total_listings)
 
-    def _is_auction(self, listing_element) -> bool:
-        """Check if a listing has auction/variable pricing (contains 'da' prefix).
+    def _is_auction(self, content_element) -> bool:
+        """Check if a listing has auction/variable pricing.
         
         Args:
-            listing_element: WebElement representing the listing card
+            content_element: WebElement representing the content container
             
         Returns:
             bool: True if listing has auction pricing, False otherwise
         """
         try:
-            # Look for the price container within this listing
-            price_container = listing_element.find_element(By.CSS_SELECTOR, ".styles_in-listingCardPrice__earBq")
-
-            # Check for the "da" text in the specific class
-            da_elements = price_container.find_elements(By.CSS_SELECTOR, ".styles_in-formattedPrice__text__v5dZM")
-
-            for da_element in da_elements:
-                if "da" in da_element.text.strip().lower():
-                    return True
-
-            return False
-
-        except Exception as e:
-            # If we can't find price elements, assume it's safe to include
-            self.logger.debug("Could not check auction pricing for listing: %s", str(e))
+            element_text = content_element.text.lower()
+            return "da €" in element_text
+        except Exception:
             return False
 
     @staticmethod

@@ -21,7 +21,7 @@ class ListingDetails(QuantEstateDataObject):
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing
-    # We only consider listings with transparent offer price (no price upon demand)
+    # We only consider listings with transparent offer price (no price upon demand, no auction)
     formatted_price: str = Field(..., description="Human-readable price string")
     price_eur: float = Field(..., description="Numeric price value in EUR", ge=0)
     formatted_maintenance_fee: str | None = Field(None, description="Human-readable maintenance fee string")
