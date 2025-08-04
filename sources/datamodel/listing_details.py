@@ -51,7 +51,7 @@ class ListingDetails(QuantEstateDataObject):
     balcony: bool | None = Field(None, description="Whether property has a balcony")
     terrace: bool | None = Field(None, description="Whether property has a terrace")
     elevator: bool | None = Field(None, description="Whether building has elevators")
-    garden: bool | None = Field(None, description="Whether property has a garden")
+    garden: str | None = Field(None, description="Whether property has a garden, and its type (private, shared, etc.)")
     cellar: bool | None = Field(None, description="Whether property has a cellar") # "Cantina"
     basement: bool | None = Field(None, description="Whether property has a basement")
     furnished: str | None = Field(None, description="Whether property is furnished")

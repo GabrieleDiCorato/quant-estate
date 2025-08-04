@@ -773,14 +773,6 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return False
         return None
 
-    def _parse_garden(self, garden_str: str | None) -> bool | None:
-        """Parse garden string to boolean."""
-        if not garden_str:
-            return None
-        if 'nessun' in garden_str.lower() or 'no' in garden_str.lower():
-            return False
-        return True
-
     def _parse_concierge(self, concierge_str: str | None) -> bool | None:
         """Parse concierge service string to boolean."""
         if not concierge_str:
