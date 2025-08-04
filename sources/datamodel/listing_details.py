@@ -17,7 +17,7 @@ class ListingDetails(QuantEstateDataObject):
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
-    fetch_date: datetime | None = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
+    fetch_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing")
 
     # Pricing

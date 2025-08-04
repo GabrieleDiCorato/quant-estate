@@ -534,6 +534,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 title=listing_id.title,
                 url=listing_id.url,
                 last_updated=last_update_date,
+                fetch_date= datetime.now(tz=ZoneInfo("Europe/Rome")),
                 # Pricing - required fields
                 formatted_price=price,
                 price_eur=price_eur,

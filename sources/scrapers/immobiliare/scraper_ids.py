@@ -59,6 +59,12 @@ class ImmobiliareIdScraper(SeleniumScraper):
                         if not link:
                             self.logger.warning("Listing without link found, skipping")
                             continue
+                        
+                        # Check if this listing has auction/variable pricing (contains "da" prefix)
+                        if self._is_auction(listing):
+                            self.logger.warning("Listing is auction/variable pricing, skipping: [%s]", link)
+                            continue
+
                         title = listing.get_attribute("title") or listing.text.strip()
                         if not title:
                             self.logger.warning("Listing without title found, skipping")
@@ -98,6 +104,33 @@ class ImmobiliareIdScraper(SeleniumScraper):
                     break
 
             self.logger.info("Done! Total listing IDs scraped: %d", total_listings)
+
+    def _is_auction(self, listing_element) -> bool:
+        """Check if a listing has auction/variable pricing (contains 'da' prefix).
+        
+        Args:
+            listing_element: WebElement representing the listing card
+            
+        Returns:
+            bool: True if listing has auction pricing, False otherwise
+        """
+        try:
+            # Look for the price container within this listing
+            price_container = listing_element.find_element(By.CSS_SELECTOR, ".styles_in-listingCardPrice__earBq")
+
+            # Check for the "da" text in the specific class
+            da_elements = price_container.find_elements(By.CSS_SELECTOR, ".styles_in-formattedPrice__text__v5dZM")
+
+            for da_element in da_elements:
+                if "da" in da_element.text.strip().lower():
+                    return True
+
+            return False
+
+        except Exception as e:
+            # If we can't find price elements, assume it's safe to include
+            self.logger.debug("Could not check auction pricing for listing: %s", str(e))
+            return False
 
     @staticmethod
     def extract_listing_id(url: str) -> str | None:
