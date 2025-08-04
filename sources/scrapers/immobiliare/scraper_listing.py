@@ -506,11 +506,13 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Parse maintenance fee (e.g., "€ 70/mese" -> 70.0)
             formatted_maintenance, maintenance = self._parse_maintenance_fee(maintenance_fee)
 
-            # Parse surface (e.g., "35 m²" -> 35.0)
-            surface_formatted = characteristics.get("Superficie")
-            if not surface_formatted:
+            # Parse surface (e.g., "35 m²" -> ("35 sqm", 35.0))
+            surface_str = characteristics.get("Superficie")
+            if not surface_str:
                 raise ValueError("Surface information is required but not found in characteristics")
-            surface = self._parse_surface(surface_formatted)
+            surface_formatted, surface = self._parse_surface(surface_str)
+            if not surface_formatted or not surface:
+                raise ValueError("Parsed surface is invalid or empty")
 
             # Extract property type and contract - required fields
             property_type = characteristics.get("Tipologia")
@@ -529,7 +531,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 title=listing_id.title,
                 url=listing_id.url,
                 last_updated=last_update_date,
-                fetch_date= datetime.now(tz=ZoneInfo("Europe/Rome")),
+                fetch_date=datetime.now(tz=ZoneInfo("Europe/Rome")),
                 # Pricing - required fields
                 formatted_price=price,
                 price_eur=price_eur,
@@ -561,8 +563,12 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 kitchen=characteristics.get("Cucina"),
                 # Building Info
                 build_year=self._parse_int(characteristics.get("Anno di costruzione")),
-                concierge=self._parse_concierge(characteristics.get("Servizio portineria")),
-                is_accessible=self._parse_yes_no(characteristics.get("Accesso disabili")),
+                concierge=self._parse_concierge(
+                    characteristics.get("Servizio portineria")
+                ),
+                is_accessible=self._parse_yes_no(
+                    characteristics.get("Accesso disabili")
+                ),
                 # Energy and utilities
                 heating_type=characteristics.get("Riscaldamento"),
                 air_conditioning=characteristics.get("Climatizzazione"),
@@ -650,18 +656,43 @@ class ImmobiliareListingScraper(SeleniumScraper):
             self.logger.warning("Could not parse maintenance fee: %s", fee_str)
         return None, None
 
-    def _parse_surface(self, surface_str: str) -> float | None:
-        """Parse surface string to float."""
+    def _parse_surface(self, surface_str: str) -> tuple[str | None, float | None]:
+        """Parse surface string to formatted string and float.
+
+        Args:
+            surface_str: Surface string (e.g., "35 m²")
+
+        Returns:
+            tuple[str | None, float | None]: (formatted_surface, surface_value)
+                - formatted_surface: Simplified format (e.g., "35 sqm")
+                - surface_value: Numeric value as float
+        """
         if not surface_str:
-            return None
+            return None, None
+
         try:
+            # Check that the string ends with " m²"
+            if not surface_str.strip().endswith("m²"):
+                self.logger.warning("Surface string does not end with ' m²': %s", surface_str)
+                return None, None
+
             # Extract number from string like "35 m²"
             numbers = re.findall(r'\d+', surface_str)
             if numbers:
-                return float(numbers[0])
-        except (ValueError, AttributeError):
-            self.logger.warning("Could not parse surface: %s", surface_str)
-            raise ValueError(f"Invalid surface format: {surface_str}")
+                surface_value = float(numbers[0])
+                # Create simplified formatted string by replacing "m²" with "sqm"
+                formatted_surface = surface_str.replace("m²", "sqm")
+
+                self.logger.debug("Parsed surface: %s -> %s (%.2f)", surface_str, formatted_surface, surface_value)
+                return formatted_surface, surface_value
+            else:
+                self.logger.warning("Could not extract number from surface: %s", surface_str)
+                return None, None
+
+        except (ValueError, AttributeError) as e:
+            self.logger.warning("Could not parse surface: %s", str(e).split('\n')[0])
+            self.logger.debug("Could not parse surface", exc_info=True)
+            raise ValueError(f"Invalid surface format: {surface_str}") from e
 
     def _parse_price_per_sqm(self, price_sqm_str: str | None) -> tuple[str | None, float | None]:
         """Parse price per square meter string to formatted string and float.
@@ -678,6 +709,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
             return None, None
 
         try:
+            # Check that the string ends with " €/m²"
+            if not price_sqm_str.strip().endswith("€/m²"):
+                self.logger.warning("Price per sqm string does not end with ' €/m²': %s", price_sqm_str)
+                return None, None
+
             # Extract number from string like "3.558 €/m²" or "3.558,50 €/m²"
             number_match = re.search(r'(\d{1,3}(?:\.\d{3})*(?:,\d+)?)', price_sqm_str)
             if number_match:
@@ -686,18 +722,18 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 clean_number = number_str.replace('.', '').replace(',', '.')
                 price_value = float(clean_number)
 
-                # Create simplified formatted string
-                formatted_price = f"{number_str} EUR/sqm"
+                # Create simplified formatted string by replacing "€/m²" with "EUR/sqm"
+                formatted_price = price_sqm_str.replace("€/m²", "EUR/sqm")
 
-                self.logger.debug("Parsed price per m²: %s -> %s (%.2f)", price_sqm_str, formatted_price, price_value)
+                self.logger.debug("Parsed price per sqm: %s -> %s (%.2f)", price_sqm_str, formatted_price, price_value)
                 return formatted_price, price_value
             else:
-                self.logger.warning("Could not extract number from price per m²: %s", price_sqm_str)
+                self.logger.warning("Could not extract number from price per sqm: %s", price_sqm_str)
                 return None, None
 
         except (ValueError, AttributeError) as e:
-            self.logger.warning("Could not parse price per m²: %s", str(e).split('\n')[0])
-            self.logger.debug("Could not parse price per m²", exc_info=True)
+            self.logger.warning("Could not parse price per sqm: %s", str(e).split('\n')[0])
+            self.logger.debug("Could not parse price per sqm", exc_info=True)
             return None, None
 
     def _parse_energy_class(self, energy_class_str: str | None) -> EnergyClass | None:
