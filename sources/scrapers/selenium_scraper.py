@@ -16,9 +16,9 @@ from selenium.common.exceptions import TimeoutException, WebDriverException
 import undetected_chromedriver as uc
 
 from sources.storage.abstract_storage import Storage
+from sources.config.model.scraper_settings import ScraperSettings
 
-from ..exceptions import ConfigurationError, ScrapingError
-from ..datamodel.listing_details import ListingDetails
+from ..exceptions import ScrapingError
 
 logger = logging.getLogger(__name__)
 
@@ -31,35 +31,22 @@ class SeleniumScraper(ABC):
     def __init__(
         self,
         storage: Storage,
-        base_url: str,
-        scrape_url: str,
-        min_delay: float = 1.0,
-        max_delay: float = 3.0,
-        headless: bool = False,
-        implicit_wait: int = 10,
-        page_load_timeout: int = 30,
-        window_size: tuple[int, int] = (1366, 768),
+        settings: ScraperSettings
     ):
         """Initialize the scraper with configuration."""
+        if not isinstance(settings, ScraperSettings):
+            raise TypeError(f"Expected ScraperSettings, got {type(settings).__name__}")
 
+        self.settings = settings
         self.storage = storage
-        self.base_url = base_url
-        self.scrape_url = scrape_url
-        self.min_delay = min_delay
-        self.max_delay = max_delay
-
-        # Undetected Chrome settings
-        self.headless = headless
-        self.implicit_wait = implicit_wait
-        self.page_load_timeout = page_load_timeout
-        self.window_size = window_size
+        self.settings = settings
 
         # Get next instance number atomically
         self._instance_id = next(SeleniumScraper._instance_counter)
 
         # Create instance-specific logger
         self.logger = logging.getLogger(f"{__name__}.{self._instance_id}")
-        self.logger.info("Initialized SeleniumScraper with headless: %s", self.headless)
+        self.logger.info("Initialized SeleniumScraper with headless: %s", self.settings.headless)
 
     def _create_driver(self) -> uc.Chrome:
         """Create and configure an undetected Chrome WebDriver instance.
@@ -79,7 +66,7 @@ class SeleniumScraper(ABC):
             options.add_argument("--disable-web-security")
             options.add_argument("--allow-running-insecure-content")
             # options.add_argument(f"--window-size={self.window_size[0]},{self.window_size[1]}")
-            #options.add_argument("--start-maximized")
+            # options.add_argument("--start-maximized")
 
             # Disable images to save memory
             options.add_argument("--disable-images")
@@ -100,7 +87,7 @@ class SeleniumScraper(ABC):
             options.add_argument("--no-default-browser-check")
             options.add_argument("--disable-extensions")
 
-            if self.headless:
+            if self.settings.headless:
                 options.add_argument("--headless=new")  # Use new headless mode
             else:
                 options.add_argument("--start-maximized")
@@ -114,8 +101,8 @@ class SeleniumScraper(ABC):
             )
 
             # Configure timeouts
-            driver.implicitly_wait(self.implicit_wait)
-            driver.set_page_load_timeout(self.page_load_timeout)
+            driver.implicitly_wait(self.settings.implicit_wait)
+            driver.set_page_load_timeout(self.settings.page_load_timeout)
 
             self.logger.info("Created undetected Chrome WebDriver instance")
             return driver
@@ -141,10 +128,10 @@ class SeleniumScraper(ABC):
             except Exception as e:
                 self.logger.warning("Error closing WebDriver: %s", str(e))
 
-    def warmup_driver(self, driver):
+    def warmup_driver(self, driver, base_url: str):
         # Visit the homepage to get cookies
         self.logger.info("Visiting homepage to initialize session...")
-        self.get_page(driver, self.base_url)
+        self.get_page(driver, base_url)
         # Wait for the manual captcha solving or any initial loading
         # time.sleep(random.uniform(5, 10))
         # Wait for cookies to load and close them
@@ -171,7 +158,7 @@ class SeleniumScraper(ABC):
             if wait_for_element:
                 by_str, locator = wait_for_element
                 by = getattr(By, by_str.upper())
-                WebDriverWait(driver, self.implicit_wait).until(
+                WebDriverWait(driver, self.settings.implicit_wait).until(
                     EC.presence_of_element_located((by, locator))
                 )
                 self.logger.debug("Successfully waited for element: %s", locator)
@@ -213,7 +200,7 @@ class SeleniumScraper(ABC):
     def _realistic_wait(self) -> None:
         """Wait with realistic randomization to mimic human behavior."""
         # Generate base delay
-        base_delay = random.uniform(self.min_delay, self.max_delay)
+        base_delay = random.uniform(self.settings.min_delay, self.settings.max_delay)
         jitter_delay = random.uniform(-0.2, 0.3)
         # Occasionally add longer pauses (5% chance) to simulate human distractions
         extra_pause = 0.0 if random.random() >= 0.05 else random.uniform(1.0, 3.0)

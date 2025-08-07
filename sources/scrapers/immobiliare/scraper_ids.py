@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
 
+from sources.config.model.scraper_settings import ScraperImmobiliareIdSettings
 from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.listing_id import ListingId
 from sources.logging import logging_utils
@@ -17,27 +18,51 @@ SOURCE = "immobiliare"
 class ImmobiliareIdScraper(SeleniumScraper):
     """Scraper for Immobiliare.it using Selenium."""
 
-    def __init__(self, 
-                 storage: Storage, 
-                 base_url: str = "https://www.immobiliare.it/",
-                 scrape_url: str = "https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc",
-                 **kwargs):
+    def __init__(
+        self,
+        storage: Storage,
+        settings: ScraperImmobiliareIdSettings,
+        scrape_url: str = "https://www.immobiliare.it/vendita-case/milano/"
+    ):
         """Initialize the Immobiliare scraper with specific settings."""
-        super().__init__(storage, base_url, scrape_url=scrape_url, **kwargs)
+        super().__init__(storage, settings)
+
+        if not isinstance(settings, ScraperImmobiliareIdSettings):
+            raise TypeError(f"Expected ScraperImmobiliareIdSettings, got {type(settings).__name__}")
+        self.settings = settings
+
+        self.scrape_url = scrape_url
 
         # Create instance-specific logger
         self.logger = logging.getLogger(f"{__name__}.{self._instance_id}")
 
-    def scrape(self, limit: int = 2000):
+    @classmethod
+    def _get_url_with_params(cls, settings: ScraperImmobiliareIdSettings, scrape_url) -> str:
+        """Construct the scrape URL with sorting and filtering parameters."""
+        url = scrape_url
+        if url[-1] != "/":
+            url += "/"
+        if settings.use_sorting:
+            url += f"?{settings.sorting_url_param}"
+        if settings.use_filtering:
+            if "?" in url:
+                url += "&"
+            else:
+                url += "?"
+            url += settings.filter_url_param
+        return url
+
+    def scrape(self) -> None:
         """Main scraping method to collect property IDs."""
 
         # Automatically closes driver after use
         with self.get_driver() as driver:
-            self.warmup_driver(driver)
+            self.warmup_driver(driver, self.settings.base_url)
 
             # Navigate to the initial page
-            self.logger.info("Navigating to scrape URL: %s", self.scrape_url)
-            self.get_page(driver, self.scrape_url)
+            full_scrape_url = self._get_url_with_params(self.settings, self.scrape_url)
+            self.logger.info("Navigating to scrape URL: %s", full_scrape_url)
+            self.get_page(driver, full_scrape_url)
 
             total_listings = 0
             total_inserted = 0
@@ -92,6 +117,14 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 total_inserted += inserted_count
                 self.logger.info("Listings scraped: [%d]. Listings inserted: [%d]", total_listings, total_inserted)
 
+                # Stop condition
+                if total_listings >= self.settings.listing_limit:
+                    self.logger.info("Reached the maximum number of [%d] listings, stopping", self.settings.listing_limit)
+                    break
+                if page_n >= self.settings.max_pages:
+                    self.logger.info("Reached the maximum number of [%d] pages, stopping", self.settings.max_pages)
+                    break
+
                 # Random pause between pages
                 self._realistic_wait()
                 self.scroll_to_bottom(driver)
@@ -99,11 +132,6 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 is_next = self.to_next_page(driver, page_n)
                 if not is_next:
                     self.logger.error("No more pages to scrape or button not found.")
-                    break
-
-                # Stop condition
-                if total_listings >= limit or page_n == 80:
-                    self.logger.info("Raggiunti %d annunci, stop.", limit)
                     break
 
             self.logger.info("Done! Total listing IDs scraped: %d", total_listings)
@@ -195,16 +223,3 @@ class ImmobiliareIdScraper(SeleniumScraper):
         else:
             self.logger.debug("No pag= parameter found in URL, assuming page 1")
             return 1
-
-
-# uv run --env-file sources/resources/config.dev.env sources/scrapers/immobiliare/scraper_ids.py
-# See im_pipeline_ids.ipynb for a more interactive usage and extensive configuration using env variables and config files.
-if __name__ == "__main__":  
-    logging_utils.setup_logging(config_path="sources/resources/logging.yaml")
-
-    storage: Storage = FileStorage(ListingId, CsvStorageSettings())
-    scraper = ImmobiliareIdScraper(
-        storage,
-        scrape_url="https://www.immobiliare.it/vendita-case/milano/?criterio=data&ordine=desc"
-    )
-    scraper.scrape()
