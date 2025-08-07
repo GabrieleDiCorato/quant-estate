@@ -52,5 +52,4 @@ class ScraperImmobiliareListingSettings(ScraperSettings):
     base_url: str = Field(default="https://www.immobiliare.it/", description="Base URL for Immobiliare scraper")
     url_prefix: str = Field(default="https://www.immobiliare.it/annunci/", description="Prefix for listing URLs")
 
-
     model_config = makeSettingsConfigDict("SCRAPER__IMM_LISTING__")
