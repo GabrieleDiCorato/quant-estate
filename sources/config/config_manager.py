@@ -73,11 +73,7 @@ class ConfigManager:
             from sources.config.model.storage_settings import StorageSettings
 
             env_file_path = self._get_env_file_path("storage")
-
-            # Set environment variable for Pydantic to pick up
-            os.environ["STORAGE_ENV_FILE"] = str(env_file_path)
-
-            settings = StorageSettings()
+            settings = StorageSettings(_env_file=env_file_path)
             logger.info(f"Loaded storage config from [{env_file_path}]: [{settings}]")
             return settings
         except Exception as e:
@@ -98,11 +94,7 @@ class ConfigManager:
             from sources.config.model.scraper_settings import ScraperImmobiliareIdSettings
 
             env_file_path = self._get_env_file_path("scraper_imm_id")
-
-            # Set environment variable for Pydantic to pick up
-            os.environ["SCRAPER_IMM_ID_ENV_FILE"] = str(env_file_path)
-
-            settings = ScraperImmobiliareIdSettings()
+            settings = ScraperImmobiliareIdSettings(_env_file=env_file_path)
             logger.info(f"Loaded scraper ID config from [{env_file_path}]: [{settings}]")
             return settings
         except Exception as e:
@@ -123,11 +115,7 @@ class ConfigManager:
             from sources.config.model.scraper_settings import ScraperImmobiliareListingSettings
 
             env_file_path = self._get_env_file_path("scraper_imm_listing")
-
-            # Set environment variable for Pydantic to pick up
-            os.environ["SCRAPER_IMM_LISTING_ENV_FILE"] = str(env_file_path)
-
-            settings = ScraperImmobiliareListingSettings()
+            settings = ScraperImmobiliareListingSettings(_env_file=env_file_path)
             logger.info(f"Loaded scraper listing config from [{env_file_path}]: [{settings}]")
             return settings
         except Exception as e:
