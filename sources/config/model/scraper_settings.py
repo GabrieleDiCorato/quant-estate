@@ -50,11 +50,7 @@ class ScraperImmobiliareListingSettings(ScraperSettings):
 
     # Override defaults for Immobiliare
     base_url: str = Field(default="https://www.immobiliare.it/", description="Base URL for Immobiliare scraper")
-    scrape_url: str = Field(description="URL of specific listing to scrape")
+    url_prefix: str = Field(default="https://www.immobiliare.it/annunci/", description="Prefix for listing URLs")
 
-    # Listing scraper specific settings
-    extract_characteristics: bool = Field(default=True, description="Whether to extract detailed characteristics")
-    validate_required_fields: bool = Field(default=True, description="Whether to validate required fields")
-    skip_auction_listings: bool = Field(default=True, description="Whether to skip auction listings")
 
     model_config = makeSettingsConfigDict("SCRAPER__IMM_LISTING__")

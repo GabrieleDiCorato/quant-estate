@@ -8,6 +8,7 @@ import random
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from sources.config.model.scraper_settings import ScraperImmobiliareListingSettings
 from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.enumerations import Source, EnergyClass
 from sources.datamodel.listing_id import ListingId
@@ -17,8 +18,6 @@ from sources.scrapers.selenium_scraper import SeleniumScraper
 from sources.storage.abstract_storage import Storage
 from sources.storage.file_storage import FileStorage
 
-BASE_URL = "https://www.immobiliare.it/"
-URL_PREFIX = "https://www.immobiliare.it/annunci/"
 
 class ImmobiliareListingScraper(SeleniumScraper):
     """Scraper for Immobiliare.it using Selenium. Given the URL for a specific listing, it extracts all relevant details."""
@@ -27,15 +26,19 @@ class ImmobiliareListingScraper(SeleniumScraper):
         self,
         storage: Storage,
         listing_id: ListingId,
-        base_url: str = BASE_URL,
-        **kwargs,
+        settings: ScraperImmobiliareListingSettings,
     ):
         """Initialize the Immobiliare scraper with specific settings."""
-        super().__init__(storage, base_url, scrape_url=listing_id.url, **kwargs)
-        if not self.scrape_url.startswith(URL_PREFIX):
-            raise ValueError(f"scrape_url must start with [{URL_PREFIX}], got [{self.scrape_url}]")
+        super().__init__(storage, settings=settings)
+
+        self.settings = settings
+        if not isinstance(settings, ScraperImmobiliareListingSettings):
+            raise TypeError(f"Expected ScraperImmobiliareListingSettings, got {type(settings).__name__}")
 
         self.listing_id = listing_id
+        if not listing_id.url.startswith(settings.url_prefix):
+            raise ValueError(f"scrape_url must start with {settings.url_prefix}, got {listing_id.url}")
+        self.scrape_url = listing_id.url
 
         # Create instance-specific logger
         self.logger = logging.getLogger(f"{__name__}.{self._instance_id}")
@@ -563,12 +566,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 kitchen=characteristics.get("Cucina"),
                 # Building Info
                 build_year=self._parse_int(characteristics.get("Anno di costruzione")),
-                concierge=self._parse_concierge(
-                    characteristics.get("Servizio portineria")
-                ),
-                is_accessible=self._parse_yes_no(
-                    characteristics.get("Accesso disabili")
-                ),
+                concierge=self._parse_concierge(characteristics.get("Servizio portineria")),
+                is_accessible=self._parse_yes_no(characteristics.get("Accesso disabili")),
                 # Energy and utilities
                 heating_type=characteristics.get("Riscaldamento"),
                 air_conditioning=characteristics.get("Climatizzazione"),
@@ -784,22 +783,3 @@ class ImmobiliareListingScraper(SeleniumScraper):
     def to_next_page(self, driver, current_page: int) -> bool:
         raise NotImplementedError("Pagination is not defined while scraping a specific listing")
 
-
-# uv run --env-file sources/resources/config.dev.env sources/scrapers/immobiliare/scraper_listing.py
-# See im_pipeline_listing.ipynb for a more interactive usage and extensive configuration using env variables and config files.
-if __name__ == "__main__":  
-    logging_utils.setup_logging(config_path="sources/resources/logging.yaml")
-
-    storage: Storage = FileStorage(ListingId, CsvStorageSettings())
-    test_listing_id = ListingId(
-        source=Source.IMMOBILIARE, 
-        source_id="122361988",
-        title="Test Listing",
-        url="https://www.immobiliare.it/annunci/122361988/"
-    )
-    scraper = ImmobiliareListingScraper(
-        storage,
-        scrape_url="https://www.immobiliare.it/annunci/122361988/",
-        listing_id=test_listing_id
-    )
-    scraper.scrape()

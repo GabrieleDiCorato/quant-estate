@@ -65,8 +65,6 @@ class SeleniumScraper(ABC):
             options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--disable-web-security")
             options.add_argument("--allow-running-insecure-content")
-            # options.add_argument(f"--window-size={self.window_size[0]},{self.window_size[1]}")
-            # options.add_argument("--start-maximized")
 
             # Disable images to save memory
             options.add_argument("--disable-images")
