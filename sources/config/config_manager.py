@@ -133,3 +133,14 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"Failed to load scraper listing configuration: {e}")
             raise ConfigurationError(f"Scraper listing configuration error: {e}") from e
+
+    def invalidate_caches(self) -> None:
+        """Clear configuration cache to force reload on next access.
+
+        This method clears all cached configuration objects, forcing them to be
+        reloaded from environment variables and files on the next access.
+        """
+        self.get_storage_config.cache_clear()
+        self.get_scraper_id_config.cache_clear()
+        self.get_scraper_listing_config.cache_clear()
+        logger.info("Configuration cache cleared - settings will be reloaded on next access")

@@ -1,6 +1,7 @@
 import logging
 import re
 import random
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
@@ -37,20 +38,46 @@ class ImmobiliareIdScraper(SeleniumScraper):
         self.logger = logging.getLogger(f"{__name__}.{self._instance_id}")
 
     @classmethod
-    def _get_url_with_params(cls, settings: ScraperImmobiliareIdSettings, scrape_url) -> str:
-        """Construct the scrape URL with sorting and filtering parameters."""
-        url = scrape_url
-        if url[-1] != "/":
-            url += "/"
+    def _get_url_with_params(cls, settings: ScraperImmobiliareIdSettings, scrape_url: str) -> str:
+        """Construct the scrape URL with sorting and filtering parameters.
+        
+        Args:
+            settings: Scraper configuration containing URL parameters
+            scrape_url: Base URL to enhance with parameters
+            
+        Returns:
+            str: Complete URL with appended parameters
+        """
+        
+        # Parse the URL to handle existing query parameters properly
+        parsed_url = urlparse(scrape_url)
+        query_params = parse_qs(parsed_url.query, keep_blank_values=True)
+        
+        # Add sorting parameters if enabled
         if settings.use_sorting:
-            url += f"?{settings.sorting_url_param}"
+            sorting_params = parse_qs(settings.sorting_url_param, keep_blank_values=True)
+            query_params.update(sorting_params)
+        
+        # Add filtering parameters if enabled
         if settings.use_filtering:
-            if "?" in url:
-                url += "&"
-            else:
-                url += "?"
-            url += settings.filter_url_param
-        return url
+            filtering_params = parse_qs(settings.filter_url_param, keep_blank_values=True)
+            query_params.update(filtering_params)
+        
+        # Flatten parameter values (parse_qs returns lists)
+        flattened_params = {k: v[0] if v else '' for k, v in query_params.items()}
+        
+        # Reconstruct the URL with updated query parameters
+        new_query = urlencode(flattened_params, doseq=False)
+        complete_url = urlunparse((
+            parsed_url.scheme,
+            parsed_url.netloc,
+            parsed_url.path,
+            parsed_url.params,
+            new_query,
+            parsed_url.fragment
+        ))
+        
+        return complete_url
 
     def scrape(self) -> None:
         """Main scraping method to collect property IDs."""
