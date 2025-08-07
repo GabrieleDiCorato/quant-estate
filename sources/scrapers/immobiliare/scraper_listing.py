@@ -25,8 +25,8 @@ class ImmobiliareListingScraper(SeleniumScraper):
     def __init__(
         self,
         storage: Storage,
-        listing_id: ListingId,
         settings: ScraperImmobiliareListingSettings,
+        listing_id: ListingId,
     ):
         """Initialize the Immobiliare scraper with specific settings."""
         super().__init__(storage, settings=settings)
@@ -782,4 +782,3 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
     def to_next_page(self, driver, current_page: int) -> bool:
         raise NotImplementedError("Pagination is not defined while scraping a specific listing")
-

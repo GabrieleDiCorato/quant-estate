@@ -1,7 +1,7 @@
 """
 Pydantic-based configuration manager for the quant-estate project.
 """
-
+import __future__
 import logging
 import os
 from pathlib import Path
@@ -10,7 +10,6 @@ from functools import lru_cache
 from sources.exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
-
 
 class ConfigManager:
     """Configuration manager for the QuantEstate project."""
@@ -36,8 +35,8 @@ class ConfigManager:
         )
         return str(env_file_path)
 
-    @lru_cache(maxsize=1)
-    def get_storage_config(self):
+    # @lru_cache(maxsize=1)
+    def get_storage_config(self) -> "StorageSettings":
         """Load storage configuration based on environment variables."""
         from .model.storage_settings import StorageSettings
 
@@ -49,7 +48,28 @@ class ConfigManager:
         logger.info(f"Loaded storage config from [{env_file_path}]: [{settings}]")
         return settings
 
-    def reload_config(self) -> None:
-        """Clear cached configuration to force reload on next access."""
-        self.get_storage_config.cache_clear()
-        logger.info("Configuration cache cleared")
+        # @lru_cache(maxsize=1)
+
+    def get_scraper_id_config(self) -> "ScraperImmobiliareIdSettings":
+        """Load storage configuration based on environment variables."""
+        from .model.scraper_settings import ScraperImmobiliareIdSettings
+
+        # Override the env_file in model_config at runtime
+        env_file_path = self._get_env_file_path("scraper_imm_id")
+
+        # Create settings with runtime env file path
+        settings = ScraperImmobiliareIdSettings(_env_file=env_file_path)
+        logger.info(f"Loaded scraper ID config from [{env_file_path}]: [{settings}]")
+        return settings
+
+    def get_scraper_listing_config(self) -> "ScraperImmobiliareListingSettings":
+        """Load storage configuration based on environment variables."""
+        from .model.scraper_settings import ScraperImmobiliareListingSettings
+
+        # Override the env_file in model_config at runtime
+        env_file_path = self._get_env_file_path("scraper_imm_listing")
+
+        # Create settings with runtime env file path
+        settings = ScraperImmobiliareListingSettings(_env_file=env_file_path)
+        logger.info(f"Loaded scraper listing config from [{env_file_path}]: [{settings}]")
+        return settings
