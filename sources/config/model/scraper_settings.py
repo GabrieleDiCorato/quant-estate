@@ -41,6 +41,7 @@ class ScraperImmobiliareIdSettings(ScraperSettings):
     # ID scraper specific settings
     max_pages: int = Field(default=80, description="Maximum number of pages to scrape")
     listing_limit: int = Field(default=2000, description="Maximum number of listings to scrape")
+    min_success_rate: float = Field(default=0.3, description="Minimum success rate for id storage")
 
     model_config = makeSettingsConfigDict("SCRAPER__IMM_ID__")
 

@@ -48,24 +48,24 @@ class ImmobiliareIdScraper(SeleniumScraper):
         Returns:
             str: Complete URL with appended parameters
         """
-        
+
         # Parse the URL to handle existing query parameters properly
         parsed_url = urlparse(scrape_url)
         query_params = parse_qs(parsed_url.query, keep_blank_values=True)
-        
+
         # Add sorting parameters if enabled
         if settings.use_sorting:
             sorting_params = parse_qs(settings.sorting_url_param, keep_blank_values=True)
             query_params.update(sorting_params)
-        
+
         # Add filtering parameters if enabled
         if settings.use_filtering:
             filtering_params = parse_qs(settings.filter_url_param, keep_blank_values=True)
             query_params.update(filtering_params)
-        
+
         # Flatten parameter values (parse_qs returns lists)
         flattened_params = {k: v[0] if v else '' for k, v in query_params.items()}
-        
+
         # Reconstruct the URL with updated query parameters
         new_query = urlencode(flattened_params, doseq=False)
         complete_url = urlunparse((
@@ -76,7 +76,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
             new_query,
             parsed_url.fragment
         ))
-        
+
         return complete_url
 
     def scrape(self) -> None:
@@ -93,8 +93,12 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
             total_listings = 0
             total_inserted = 0
+            page_n = self._get_current_page_number(driver)
+            end_page_n = page_n + self.settings.max_pages
+            self.logger.info("Going to scrape a max of [%d] listings or [%d] pages, from page [%d] to [%d]",
+                             self.settings.listing_limit, self.settings.max_pages, page_n, end_page_n)
+            
             while True:
-                page_n = self._get_current_page_number(driver)
                 self.logger.info(f"Scraping page {page_n}...")
 
                 # Random scroll before scraping
@@ -148,11 +152,14 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 if total_listings >= self.settings.listing_limit:
                     self.logger.info("Reached the maximum number of [%d] listings, stopping", self.settings.listing_limit)
                     break
-                if page_n >= self.settings.max_pages:
-                    self.logger.info("Reached the maximum number of [%d] pages, stopping", self.settings.max_pages)
+                if page_n >= end_page_n:
+                    self.logger.info("Reached the maximum number of [%d] pages, stopping", end_page_n)
+                    break
+                if total_listings == 0 or total_inserted / total_listings < self.settings.min_success_rate:
+                    self.logger.error("Success rate below minimum threshold, stopping")
                     break
 
-                # Random pause between pages
+                # Move to next page
                 self._realistic_wait()
                 self.scroll_to_bottom(driver)
 
@@ -160,6 +167,12 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 if not is_next:
                     self.logger.error("No more pages to scrape or button not found.")
                     break
+
+                next_page_n = self._get_current_page_number(driver)
+                if next_page_n == page_n:
+                    self.logger.error("No change in page number, we are still at [%d], stopping.", page_n)
+                    break
+                page_n = next_page_n
 
             self.logger.info("Done! Total listing IDs scraped: %d", total_listings)
 
