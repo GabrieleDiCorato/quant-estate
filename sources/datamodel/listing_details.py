@@ -5,7 +5,6 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from pydantic import Field
 from .base_datamodel import QuantEstateDataObject
-from .listing_id import ListingId
 from .enumerations import *
 
 class ListingDetails(QuantEstateDataObject):
@@ -18,7 +17,7 @@ class ListingDetails(QuantEstateDataObject):
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
     fetch_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
-    last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing")
+    last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
 
     # Pricing
     # We only consider listings with transparent offer price (no price upon demand, no auction)
