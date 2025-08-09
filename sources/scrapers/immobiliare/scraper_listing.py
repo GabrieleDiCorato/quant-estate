@@ -438,7 +438,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 try:
                     # Extract the key (dt element)
                     key_element = feature.find_element(By.CSS_SELECTOR, "dt.styles_ld-primaryFeaturesDialogSection__featureTitle__VI7c0")
-                    key = self._normalize_text(key_element.text)
+                    key = key_element.text
 
                     # Extract the value (dd element)
                     value_element = feature.find_element(By.CSS_SELECTOR, "dd.styles_ld-primaryFeaturesDialogSection__featureDescription__G9ZGQ")
