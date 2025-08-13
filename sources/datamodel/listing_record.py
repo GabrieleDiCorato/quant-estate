@@ -8,6 +8,30 @@ from .base_datamodel import QuantEstateDataObject
 from .enumerations import *
 
 
+class OtherFeatures(QuantEstateDataObject):
+    """Data model for additional features of a property listing. Directly derived from the "other_features" field in ListingDetails."""
+
+    has_built_in_wardrobe: bool | None = Field(None, description="Whether property has built-in wardrobe (Armadio a muro)")
+    has_fireplace: bool | None = Field(None, description="Whether property has a fireplace (Caminetto)")
+    has_tennis_court: bool | None = Field(None, description="Whether property has tennis court (Campo da tennis)")
+    has_electric_gate: bool | None = Field(None, description="Whether property has electric gate (Cancello elettrico)")
+    has_kitchen: bool | None = Field(None, description="Whether property has a kitchen (Cucina)")
+    has_fiber_optic: bool | None = Field(None, description="Whether property has fiber optic connection (Fibra ottica)")
+    has_private_or_shared_garden: bool | None = Field(None, description="Whether property has both private and shared garden (Giardino privato e comune)")
+    has_hot_tub: bool | None = Field(None, description="Whether property has hot tub/jacuzzi (Idromassaggio)")
+    has_alarm_system: bool | None = Field(None, description="Whether property has alarm system (Impianto di allarme)")
+    has_attic: bool | None = Field(None, description="Whether property has attic (Mansarda)")
+    has_pool: bool | None = Field(None, description="Whether property has swimming pool (Piscina)")
+    has_armored_door: bool | None = Field(None, description="Whether property has armored door (Porta blindata)")
+    has_reception: bool | None = Field(None, description="Whether building has reception (Reception)")
+    has_tavern: bool | None = Field(None, description="Whether property has tavern/basement room (Taverna)")
+    has_video_intercom: bool | None = Field(None, description="Whether building has video intercom (VideoCitofono)")
+    tv_system: TvSystem | None = Field(None, description="TV system type")
+    window_glass_type: WindowGlassType | None = Field(None, description="Type of window glass")
+    window_material: WindowMaterial | None = Field(None, description="Window frame material")
+    sun_exposure: str | None = Field(None, description="Sun exposure of the property (e.g., south, north, etc.)")
+
+
 class ListingRecord(QuantEstateDataObject):
     """Data model for a real estate property. The normalized and cleaned version of ListingDetails."""
 
@@ -17,9 +41,10 @@ class ListingRecord(QuantEstateDataObject):
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
-    timestamp: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Creation timestamp of the record in the database")
+    fetch_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
-
+    etl_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Creation timestamp of the record in the database")
+    
     # Pricing
     # We only consider listings with transparent offer price (no price upon demand, no auction)
     price_eur: float = Field(..., description="Numeric price value in EUR", ge=0)
@@ -84,25 +109,7 @@ class ListingRecord(QuantEstateDataObject):
     description: str = Field(..., description="Property description")
 
     # From "other_amenities":
-    has_built_in_wardrobe: bool | None = Field(None, description="Whether property has built-in wardrobe (Armadio a muro)")
-    has_fireplace: bool | None = Field(None, description="Whether property has a fireplace (Caminetto)")
-    has_tennis_court: bool | None = Field(None, description="Whether property has tennis court (Campo da tennis)")
-    has_electric_gate: bool | None = Field(None, description="Whether property has electric gate (Cancello elettrico)")
-    has_kitchen: bool | None = Field(None, description="Whether property has a kitchen (Cucina)")
-    has_fiber_optic: bool | None = Field(None, description="Whether property has fiber optic connection (Fibra ottica)")
-    has_private_or_shared_garden: bool | None = Field(None, description="Whether property has both private and shared garden (Giardino privato e comune)")
-    has_hot_tub: bool | None = Field(None, description="Whether property has hot tub/jacuzzi (Idromassaggio)")
-    has_alarm_system: bool | None = Field(None, description="Whether property has alarm system (Impianto di allarme)")
-    has_attic: bool | None = Field(None, description="Whether property has attic (Mansarda)")
-    has_pool: bool | None = Field(None, description="Whether property has swimming pool (Piscina)")
-    has_armored_door: bool | None = Field(None, description="Whether property has armored door (Porta blindata)")
-    has_reception: bool | None = Field(None, description="Whether building has reception (Reception)")
-    has_tavern: bool | None = Field(None, description="Whether property has tavern/basement room (Taverna)")
-    has_video_intercom: bool | None = Field(None, description="Whether building has video intercom (VideoCitofono)")
-    tv_system: TvSystem | None = Field(None, description="TV system type")
-    window_glass_type: WindowGlassType | None = Field(None, description="Type of window glass")
-    window_material: WindowMaterial | None = Field(None, description="Window frame material")
-    sun_exposure: str | None = Field(None, description="Sun exposure of the property (e.g., south, north, etc.)")
+    other_features: OtherFeatures | None = Field(None, description="Additional features of the property")
 
 
     @classmethod

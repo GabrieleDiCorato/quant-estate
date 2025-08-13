@@ -581,7 +581,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 # Extended description - required fields
                 description_title=description_title,
                 description=extended_description,
-                other_amenities=feature_badges if feature_badges else None,
+                other_features=feature_badges if feature_badges else None,
             )
 
         except Exception as e:

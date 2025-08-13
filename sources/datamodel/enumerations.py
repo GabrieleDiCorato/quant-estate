@@ -8,7 +8,7 @@ from enum import Enum
 class BaseEnum(str, Enum):
     """Base class for all enumerations in the project."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
 

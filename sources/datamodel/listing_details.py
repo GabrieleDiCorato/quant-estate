@@ -29,7 +29,7 @@ class ListingDetails(QuantEstateDataObject):
     price_sqm: float | None = Field(None, description="Price per square meter in EUR", ge=0)
 
     # Property classification
-    type: str = Field(..., description="Property type (apartment, house, etc.)")
+    type: str = Field(..., description="Property type (apartment, house, etc.)", min_length=1)
     contract: str = Field(..., description="Type of contract (sale, rent, etc.)")
     condition: str | None = Field(None, description="Property condition (renovated, new, etc.)")
     # Derived field (from the "Condition" field)
@@ -77,7 +77,7 @@ class ListingDetails(QuantEstateDataObject):
     # Extendend description
     description_title: str | None = Field(None, description="Title in the property description")
     description: str = Field(..., description="Property description")
-    other_amenities: list[str] | None = Field(None, description="List of other amenities or features")
+    other_features: list[str] | None = Field(None, description="List of other amenities or features")
 
 
     @classmethod
