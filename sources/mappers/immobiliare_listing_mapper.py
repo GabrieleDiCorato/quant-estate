@@ -10,24 +10,25 @@ and enumeration mapping.
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
 from zoneinfo import ZoneInfo
 
 from sources.datamodel.listing_details import ListingDetails
 from sources.datamodel.listing_record import ListingRecord, OtherFeatures
 import sources.datamodel.enumerations as enums
+# Use Italian -> Enum mappings from Immobiliare mapper
 from sources.mappers.immobiliare_enum_mapper import (
-    IMM_PROPERTY_CONDITION_MAP,
-    IMM_CONTRACT_TYPE_MAP,
-    IMM_ENERGY_CLASS_MAP,
-    IMM_FURNITURE_MAP,
-    IMM_GARDEN_MAP,
-    IMM_KITCHEN_MAP,
-    IMM_OWNERSHIP_MAP,
-    IMM_PROPERTY_CLASS_MAP,
-    IMM_PROPERTY_TYPE_MAP,
-    IMM_TV_SYSTEM_MAP,
-    IMM_WINDOW_GLASS_MAP,
-    IMM_WINDOW_MATERIAL_MAP,
+    IMM_PROPERTY_CONDITION_MAP as COND_MAP,
+    IMM_CONTRACT_TYPE_MAP as CONTRACT_MAP,
+    IMM_FURNITURE_MAP as FURNITURE_MAP,
+    IMM_GARDEN_MAP as GARDEN_MAP,
+    IMM_KITCHEN_MAP as KITCHEN_MAP,
+    IMM_OWNERSHIP_MAP as OWNERSHIP_MAP,
+    IMM_PROPERTY_CLASS_MAP as CLASS_MAP,
+    IMM_PROPERTY_TYPE_MAP as TYPE_MAP,
+    IMM_TV_SYSTEM_MAP as TV_MAP,
+    IMM_WINDOW_GLASS_MAP as GLASS_MAP,
+    IMM_WINDOW_MATERIAL_MAP as WINDOW_MATERIAL_MAP,
 )
 
 # Configure logging
@@ -39,21 +40,7 @@ class ListingDataTransformer:
     """Transforms ListingDetails CSV data to ListingRecord instances."""
 
     def __init__(self):
-        """Initialize the transformer with mapping dictionaries."""
-        # Use Italian -> Enum mappings from Immobiliare mapper
-        self.condition_mapping: dict[str, enums.PropertyCondition] = IMM_PROPERTY_CONDITION_MAP
-        self.contract_type_mapping: dict[str, enums.ContractType] = IMM_CONTRACT_TYPE_MAP
-        self.energy_class_mapping: dict[str, enums.EnergyClass] = IMM_ENERGY_CLASS_MAP
-        self.furniture_mapping: dict[str, enums.FurnitureType] = IMM_FURNITURE_MAP
-        self.garden_mapping: dict[str, enums.Garden] = IMM_GARDEN_MAP
-        self.kitchen_mapping: dict[str, enums.KitchenType] = IMM_KITCHEN_MAP
-        self.ownership_type_mapping: dict[str, enums.OwnershipType] = IMM_OWNERSHIP_MAP
-        self.property_class_mapping: dict[str, enums.PropertyClass] = IMM_PROPERTY_CLASS_MAP
-        self.property_type_mapping: dict[str, enums.PropertyType] = IMM_PROPERTY_TYPE_MAP
-        self.tv_system_mapping: dict[str, enums.TvSystem] = IMM_TV_SYSTEM_MAP
-        self.window_glass_mapping: dict[str, enums.WindowGlassType] = IMM_WINDOW_GLASS_MAP
-        self.window_material_mapping: dict[str, enums.WindowMaterial] = IMM_WINDOW_MATERIAL_MAP
-
+        """Initialize the transformer with static amenity mapping."""
         # Only keep custom mappings for amenities since they map to boolean fields
         self.amenity_mapping: dict[str, str] = {
             "Armadio a muro": "has_built_in_wardrobe",
@@ -72,11 +59,6 @@ class ListingDataTransformer:
             "Taverna": "has_tavern",
             "VideoCitofono": "has_video_intercom",
         }
-
-    @staticmethod
-    def _reverse_enum_mapping[E: enums.BaseEnum](enum_mapping: type[E]) -> dict[str, E]:
-        """Reverse the enum mapping to get a dictionary of value to enum."""
-        return {enum.value: enum for enum in enum_mapping}
 
     def map(self, listing: ListingDetails) -> ListingRecord:
         try:
@@ -117,7 +99,7 @@ class ListingDataTransformer:
             current_availability=enums.CurrentAvailability.AVAILABLE,
             is_luxury=listing.is_luxury == "true" if listing.is_luxury else None,
             # Property condition
-            condition=self._parse_enumeration_field("condition", listing.condition or "", self.condition_mapping),
+            condition=self._parse_enumeration_field("condition", listing.condition or "", COND_MAP),
             # Property details
             surface=self._require_float(listing.surface, "surface"),
             rooms=listing.rooms,
@@ -129,13 +111,13 @@ class ListingDataTransformer:
             has_terrace=listing.terrace,
             has_elevator=listing.elevator,
             garden=(
-                self._parse_enumeration_field("garden", listing.garden, self.garden_mapping)
+                self._parse_enumeration_field("garden", listing.garden, GARDEN_MAP)
                 if isinstance(listing.garden, str) else None
             ),
             has_cellar=listing.cellar,
             has_basement=None,
-            furnished=self._parse_enumeration_field("furnished", listing.furnished or "", self.furniture_mapping),
-            kitchen=self._parse_enumeration_field("kitchen", listing.kitchen or "", self.kitchen_mapping),
+            furnished=self._parse_enumeration_field("furnished", listing.furnished or "", FURNITURE_MAP),
+            kitchen=self._parse_enumeration_field("kitchen", listing.kitchen or "", KITCHEN_MAP),
             # Building info
             build_year=listing.build_year,
             has_concierge=listing.concierge,
@@ -179,7 +161,7 @@ class ListingDataTransformer:
         if not parts or len(parts) == 0:
             raise ValueError(f"Field 'type' is empty or invalid: [{type_field}]")
 
-        property_type: enums.PropertyType | None = self._parse_enumeration_field("property_type", parts[0], self.property_type_mapping)
+        property_type: enums.PropertyType | None = self._parse_enumeration_field("property_type", parts[0], TYPE_MAP)
         if not property_type:
             raise ValueError(f"Unknown property type in field 'type': [{parts[0]}]")
 
@@ -188,31 +170,31 @@ class ListingDataTransformer:
         elif len(parts) == 2:
             second_part = parts[1]
             # Try to parse second part as ownership type first
-            ownership_type = self._parse_enumeration_field("ownership_type", second_part, self.ownership_type_mapping)
+            ownership_type = self._parse_enumeration_field("ownership_type", second_part, OWNERSHIP_MAP)
 
             # If second part is not an ownership type, try as property class
             if ownership_type is None:
-                property_class = self._parse_enumeration_field("property_class", second_part, self.property_class_mapping)
+                property_class = self._parse_enumeration_field("property_class", second_part, CLASS_MAP)
                 return property_type, ownership_type, property_class
             else:
                 logger.warning("Failed to parse string '%s' as either ownership type or property class", second_part)
                 return property_type, ownership_type, None
-        else:   
+        else:
             if len(parts) > 3:
                 logger.warning("Unexpected number of parts in 'type' field: %s", parts)
 
             # Second part is always ownership type
-            ownership_type = self._parse_enumeration_field("ownership_type", parts[1], self.ownership_type_mapping)
+            ownership_type = self._parse_enumeration_field("ownership_type", parts[1], OWNERSHIP_MAP)
             # Third part is always property class
-            property_class = self._parse_enumeration_field("property_class", parts[2], self.property_class_mapping)
+            property_class = self._parse_enumeration_field("property_class", parts[2], CLASS_MAP)
 
             return property_type, ownership_type, property_class
 
     @staticmethod
     def _parse_enumeration_field[T: enums.BaseEnum](
-            field_name: str,
-            field_value_str: str,
-            mapping: dict[str, T]
+        field_name: str,
+        field_value_str: str,
+        mapping: Mapping[str, T],
     ) -> T | None:
         """Parse a field that maps to an enumeration."""
         if not field_value_str or str(field_value_str).strip() == "":
@@ -237,9 +219,9 @@ class ListingDataTransformer:
 
         label = contract_field.strip()
         # Try exact first (e.g., 'Vendita'), then lowercase mapping fallback
-        value = self.contract_type_mapping.get(label)
+        value = CONTRACT_MAP.get(label)
         if value is None:
-            value = self.contract_type_mapping.get(label.lower())
+            value = CONTRACT_MAP.get(label.lower())
 
         if value is None:
             raise ValueError(f"Unknown contract type: [{contract_field}]")
@@ -305,18 +287,19 @@ class ListingDataTransformer:
         if not features or len(features) <= 0:
             return None
 
-        amenities = {}
+        amenities: dict[str, Any] = {}
         # Process other_amenities columns
-        for i in range(len(features)):
-            amenity_value = features[i].strip()
-            if amenity_value:
-                # Direct amenity mapping
-                if amenity_value in self.amenity_mapping:
-                    field_name = self.amenity_mapping[amenity_value]
-                    amenities[field_name] = True
+        for amenity_value_raw in features:
+            amenity_value = amenity_value_raw.strip()
+            if not amenity_value:
+                continue
+            # Direct amenity mapping
+            if amenity_value in self.amenity_mapping:
+                field_name = self.amenity_mapping[amenity_value]
+                amenities[field_name] = True
 
-                # Handle composite amenity descriptions like "Infissi esterni in doppio vetro / PVC"
-                self._parse_composite_amenity(amenity_value, amenities)
+            # Handle composite amenity descriptions like "Infissi esterni in doppio vetro / PVC"
+            self._parse_composite_amenity(amenity_value, amenities)
 
         if not amenities:
             return None
@@ -327,19 +310,19 @@ class ListingDataTransformer:
         amenity_lower = amenity_value.lower()
 
         # Check for window glass types
-        for glass_text, glass_enum in self.window_glass_mapping.items():
+        for glass_text, glass_enum in GLASS_MAP.items():
             if glass_text in amenity_lower:
                 amenities["window_glass_type"] = glass_enum
                 break
 
         # Check for window materials
-        for material_text, material_enum in self.window_material_mapping.items():
+        for material_text, material_enum in WINDOW_MATERIAL_MAP.items():
             if material_text.lower() in amenity_lower:
                 amenities["window_material"] = material_enum
                 break
 
         # Check for TV system
-        for tv_text, tv_enum in self.tv_system_mapping.items():
+        for tv_text, tv_enum in TV_MAP.items():
             if tv_text in amenity_value:
                 amenities["tv_system"] = tv_enum
                 break
@@ -350,7 +333,7 @@ class ListingDataTransformer:
 
     def _extract_window_info(self, row: Dict[str, str]) -> dict[str, Any]:
         """Extract window glass type and material from amenity fields."""
-        window_info = {}
+        window_info: dict[str, Any] = {}
 
         # Look through all other_amenities columns for window information
         for i in range(8):
