@@ -52,17 +52,17 @@ class EnergyClass(BaseEnum):
 
 
 class FurnitureType(BaseEnum):
-    PARTIALLY_FURNISHED = "Parzialmente arredato"
-    FULLY_FURNISHED = "Completamente arredato"
-    ONLY_KITCHEN = "Solo cucina arredata"
-    NO = "No"
+    PARTIALLY_FURNISHED = "partially_furnished"
+    FULLY_FURNISHED = "fully_furnished"
+    ONLY_KITCHEN = "only_kitchen"
+    NO = "none"
 
 
 class Garden(BaseEnum):
     """Garden types for property listings."""
-    PRIVATE = "Giardino privato"
-    SHARED = "Giardino comune"
-    NONE = "Nessun giardino"
+    PRIVATE = "private"
+    SHARED = "shared"
+    NONE = "none"
 
 
 class HeatingType(BaseEnum):
@@ -73,49 +73,49 @@ class HeatingType(BaseEnum):
 
 class KitchenType(BaseEnum):
     """Kitchen types for property listings."""
-    HABITABLE = "Cucina abitabile"
-    OPEN_VIEW = "Cucina a vista"
-    KITCHENETTE = "Cucina cucinotto"
-    COOKING_CORNER = "Cucina angolo cottura"
-    SEMI_HABITABLE = "Cucina semi abitabile"
+    HABITABLE = "habitable"
+    OPEN_VIEW = "open_view"
+    KITCHENETTE = "kitchenette"
+    COOKING_CORNER = "kitchen_corner"
+    SEMI_HABITABLE = "semi_habitable"
 
 
 class OwnershipType(BaseEnum):
     """Types of property ownership in Italian real estate."""
-    FULL_OWNERSHIP = "Intera proprietà"
-    BARE_OWNERSHIP = "Nuda proprietà"
+    FULL_OWNERSHIP = "full_ownership"
+    BARE_OWNERSHIP = "bare_ownership"
 
 
 class PropertyClass(BaseEnum):
     """Property class classification based on quality and market positioning."""
-    LUXURY = "Classe immobile signorile"
-    MEDIUM = "Classe immobile media"
-    ECONOMIC = "Classe immobile economica"
-    HIGH_END_LUXURY = "Immobile di lusso"
+    LUXURY = "upscale"
+    MEDIUM = "medium"
+    ECONOMIC = "economic"
+    HIGH_END_LUXURY = "luxury"
 
 
 class PropertyCondition(BaseEnum):
     """Property condition classification."""
-    EXCELLENT_RENOVATED = "Ottimo / Ristrutturato"
-    TO_RENOVATE = "Da ristrutturare"
-    NEW_UNDER_CONSTRUCTION = "Nuovo / In costruzione"
-    GOOD_HABITABLE = "Buono / Abitabile"
+    EXCELLENT_RENOVATED = "excellent_renovated"
+    TO_RENOVATE = "to_renovate"
+    NEW_UNDER_CONSTRUCTION = "new_under_construction"
+    GOOD_HABITABLE = "good_habitable"
 
 
 class PropertyType(BaseEnum):
     """Italian property subtypes for detailed classification."""
-    APARTMENT = "Appartamento"
-    PENTHOUSE = "Attico"
-    LOFT = "Loft"
-    SEMI_DETACHED_VILLA = "Villa bifamiliare"
-    ATTIC = "Mansarda"
-    DETACHED_VILLA = "Villa unifamiliare"
-    OPEN_SPACE = "Open space"
-    TERRACED_HOUSE = "Terratetto unifamiliare"
-    TOWNHOUSE = "Villa a schiera"
-    VILLA_APARTMENT = "Appartamento in villa"
-    MULTI_FAMILY_VILLA = "Villa plurifamiliare"
-    RUSTIC_HOUSE = "Rustico"
+    APARTMENT = "apartment"
+    PENTHOUSE = "penthouse"
+    LOFT = "loft"
+    SEMI_DETACHED_VILLA = "semi_detached_villa"
+    ATTIC = "attic"
+    DETACHED_VILLA = "detached_villa"
+    OPEN_SPACE = "open_space"
+    TERRACED_HOUSE = "terraced_house"
+    TOWNHOUSE = "townhouse"
+    VILLA_APARTMENT = "villa_apartment"
+    MULTI_FAMILY_VILLA = "multi_family_villa"
+    RUSTIC_HOUSE = "rustic_house"
 
 
 class RegionType(BaseEnum):
@@ -134,20 +134,20 @@ class Source(BaseEnum):
 
 class TvSystem(BaseEnum):
     """TV system types for property listings."""
-    CENTRALIZED = "Impianto tv centralizzato"
-    SATELLITE = "Impianto tv con parabola satellitare"
-    INDIVIDUAL = "Impianto tv singolo"
+    CENTRALIZED = "centralized"
+    SATELLITE = "satellite"
+    INDIVIDUAL = "individual"
 
 
 class WindowGlassType(BaseEnum):
     """Window glass types for property listings."""
-    SINGLE_GLASS = "vetro"
-    DOUBLE_GLASS = "doppio vetro"
-    TRIPLE_GLASS = "triplo vetro"
+    SINGLE_GLASS = "single_glass"
+    DOUBLE_GLASS = "double_glass"
+    TRIPLE_GLASS = "triple_glass"
 
 
 class WindowMaterial(BaseEnum):
     """Window frame materials for property listings."""
-    WOOD = "legno"
-    METAL = "metallo"
-    PVC = "PVC"
+    WOOD = "wood"
+    METAL = "metal"
+    PVC = "pvc"

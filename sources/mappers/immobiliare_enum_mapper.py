@@ -1,0 +1,130 @@
+"""
+Italian string -> Enum value mappings for Immobiliare.it source.
+
+These dictionaries translate the exact Italian labels found on immobiliare.it
+into our internal, JSON-friendly enum values defined in sources.datamodel.enumerations.
+"""
+
+from __future__ import annotations
+
+from sources.datamodel.enumerations import *
+
+# FurnitureType
+IMM_FURNITURE_MAP: dict[str, FurnitureType] = {
+	"Parzialmente arredato": FurnitureType.PARTIALLY_FURNISHED,
+	"Sì": FurnitureType.FULLY_FURNISHED,
+	"Solo cucina arredata": FurnitureType.ONLY_KITCHEN,
+	"No": FurnitureType.NO,
+}
+
+# Garden
+IMM_GARDEN_MAP: dict[str, Garden] = {
+	"Giardino privato": Garden.PRIVATE,
+	"Giardino comune": Garden.SHARED,
+	"Nessun giardino": Garden.NONE,
+}
+
+# KitchenType
+IMM_KITCHEN_MAP: dict[str, KitchenType] = {
+	"Cucina abitabile": KitchenType.HABITABLE,
+	"Cucina a vista": KitchenType.OPEN_VIEW,
+	"Cucina cucinotto": KitchenType.KITCHENETTE,
+	"Cucina angolo cottura": KitchenType.COOKING_CORNER,
+	"Cucina semi abitabile": KitchenType.SEMI_HABITABLE,
+}
+
+# OwnershipType
+IMM_OWNERSHIP_MAP: dict[str, OwnershipType] = {
+	"Intera proprietà": OwnershipType.FULL_OWNERSHIP,
+	"Nuda proprietà": OwnershipType.BARE_OWNERSHIP,
+}
+
+# PropertyClass
+IMM_PROPERTY_CLASS_MAP: dict[str, PropertyClass] = {
+	"Classe immobile signorile": PropertyClass.LUXURY,
+	"Classe immobile media": PropertyClass.MEDIUM,
+	"Classe immobile economica": PropertyClass.ECONOMIC,
+	"Immobile di lusso": PropertyClass.HIGH_END_LUXURY,
+}
+
+# PropertyCondition
+IMM_PROPERTY_CONDITION_MAP: dict[str, PropertyCondition] = {
+	"Ottimo / Ristrutturato": PropertyCondition.EXCELLENT_RENOVATED,
+	"Da ristrutturare": PropertyCondition.TO_RENOVATE,
+	"Nuovo / In costruzione": PropertyCondition.NEW_UNDER_CONSTRUCTION,
+	"Buono / Abitabile": PropertyCondition.GOOD_HABITABLE,
+}
+
+# PropertyType
+IMM_PROPERTY_TYPE_MAP: dict[str, PropertyType] = {
+	"Appartamento": PropertyType.APARTMENT,
+	"Attico": PropertyType.PENTHOUSE,
+	"Loft": PropertyType.LOFT,
+	"Villa bifamiliare": PropertyType.SEMI_DETACHED_VILLA,
+	"Mansarda": PropertyType.ATTIC,
+	"Villa unifamiliare": PropertyType.DETACHED_VILLA,
+	"Open space": PropertyType.OPEN_SPACE,
+	"Terratetto unifamiliare": PropertyType.TERRACED_HOUSE,
+	"Villa a schiera": PropertyType.TOWNHOUSE,
+	"Appartamento in villa": PropertyType.VILLA_APARTMENT,
+	"Villa plurifamiliare": PropertyType.MULTI_FAMILY_VILLA,
+	"Rustico": PropertyType.RUSTIC_HOUSE,
+}
+
+# TvSystem
+IMM_TV_SYSTEM_MAP: dict[str, TvSystem] = {
+	"Impianto tv centralizzato": TvSystem.CENTRALIZED,
+	"Impianto tv con parabola satellitare": TvSystem.SATELLITE,
+	"Impianto tv singolo": TvSystem.INDIVIDUAL,
+}
+
+# WindowGlassType (comes embedded in amenities text)
+IMM_WINDOW_GLASS_MAP: dict[str, WindowGlassType] = {
+	"vetro": WindowGlassType.SINGLE_GLASS,
+	"doppio vetro": WindowGlassType.DOUBLE_GLASS,
+	"triplo vetro": WindowGlassType.TRIPLE_GLASS,
+}
+
+# WindowMaterial (comes embedded in amenities text)
+IMM_WINDOW_MATERIAL_MAP: dict[str, WindowMaterial] = {
+	"legno": WindowMaterial.WOOD,
+	"metallo": WindowMaterial.METAL,
+	"PVC": WindowMaterial.PVC,
+}
+
+# Identity or simple mappings for enums already in English (if needed in future)
+IMM_CONTRACT_TYPE_MAP: dict[str, ContractType] = {
+	"vendita": ContractType.SALE,
+	"affitto": ContractType.RENT,
+}
+
+IMM_AIR_CONDITIONING_MAP: dict[str, AirConditioningType] = {
+	"centralizzato": AirConditioningType.CENTRAL,
+	"autonomo": AirConditioningType.INDEPENDENT,
+	"assenza": AirConditioningType.NONE,
+}
+
+IMM_HEATING_MAP: dict[str, HeatingType] = {
+	"centralizzato": HeatingType.CENTRAL,
+	"autonomo": HeatingType.INDEPENDENT,
+	"assenza": HeatingType.NONE,
+}
+
+# Energy class labels are already A, A+, etc.
+IMM_ENERGY_CLASS_MAP: dict[str, EnergyClass] = {e.value: e for e in EnergyClass}
+
+# For completeness, keep placeholders for enums not typically labeled from site text
+IMM_CURRENT_AVAILABILITY_MAP: dict[str, CurrentAvailability] = {
+	"disponibile": CurrentAvailability.AVAILABLE,
+	"occupato": CurrentAvailability.OCCUPIED,
+}
+
+IMM_REGION_MAP: dict[str, RegionType] = {
+	"urbano": RegionType.URBAN,
+	"suburbano": RegionType.SUBURBAN,
+	"rurale": RegionType.RURAL,
+	"costiero": RegionType.COASTAL,
+	"montano": RegionType.MOUNTAIN,
+	"deserto": RegionType.DESERT,
+}
+
