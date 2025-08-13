@@ -26,7 +26,7 @@ from .enumerations import (
 )
 from .listing_details import ListingDetails
 from .listing_id import ListingId
-from .listing_record import ListingRecord
+from .listing_record import ListingRecord, OtherFeatures
 
 __all__ = [
     "QuantEstateDataObject",
@@ -52,4 +52,5 @@ __all__ = [
     "ListingDetails",
     "ListingId",
     "ListingRecord",
+    "OtherFeatures",
 ]

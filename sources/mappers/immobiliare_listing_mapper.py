@@ -13,11 +13,11 @@ from typing import Any, Dict, List, Optional
 from collections.abc import Mapping
 from zoneinfo import ZoneInfo
 
-from sources.datamodel.listing_details import ListingDetails
-from sources.datamodel.listing_record import ListingRecord, OtherFeatures
+from sources.datamodel import ListingDetails
+from sources.datamodel import ListingRecord, OtherFeatures
 import sources.datamodel.enumerations as enums
 # Use Italian -> Enum mappings from Immobiliare mapper
-from sources.mappers.immobiliare_enum_mapper import (
+from sources.mappers import (
     IMM_PROPERTY_CONDITION_MAP as COND_MAP,
     IMM_CONTRACT_TYPE_MAP as CONTRACT_MAP,
     IMM_FURNITURE_MAP as FURNITURE_MAP,
@@ -29,6 +29,7 @@ from sources.mappers.immobiliare_enum_mapper import (
     IMM_TV_SYSTEM_MAP as TV_MAP,
     IMM_WINDOW_GLASS_MAP as GLASS_MAP,
     IMM_WINDOW_MATERIAL_MAP as WINDOW_MATERIAL_MAP,
+    IMM_OTHER_FEATURES as OTHER_FEATURES
 )
 
 # Configure logging
@@ -40,25 +41,7 @@ class ListingDataTransformer:
     """Transforms ListingDetails CSV data to ListingRecord instances."""
 
     def __init__(self):
-        """Initialize the transformer with static amenity mapping."""
-        # Only keep custom mappings for amenities since they map to boolean fields
-        self.amenity_mapping: dict[str, str] = {
-            "Armadio a muro": "has_built_in_wardrobe",
-            "Caminetto": "has_fireplace",
-            "Campo da tennis": "has_tennis_court",
-            "Cancello elettrico": "has_electric_gate",
-            "Cucina": "has_kitchen",
-            "Fibra ottica": "has_fiber_optic",
-            "Giardino privato e comune": "has_private_or_shared_garden",
-            "Idromassaggio": "has_hot_tub",
-            "Impianto di allarme": "has_alarm_system",
-            "Mansarda": "has_attic",
-            "Piscina": "has_pool",
-            "Porta blindata": "has_armored_door",
-            "Reception": "has_reception",
-            "Taverna": "has_tavern",
-            "VideoCitofono": "has_video_intercom",
-        }
+        pass
 
     def map(self, listing: ListingDetails) -> ListingRecord:
         try:
@@ -71,10 +54,10 @@ class ListingDataTransformer:
         """Transform a single ListingDetails instance to a ListingRecord instance."""
         # Parse composite fields
         property_type, ownership, property_class = self._parse_type_field(listing.type)
-        contract_info = self._parse_contract_field(listing.contract)
+        contract_type, rent_to_own, available = self._parse_contract_field(listing.contract)
 
         # Extract amenities
-        amenities = self._map_other_features(listing.other_features or [])
+        other_features = self._map_other_features(listing.other_features or [])
 
         return ListingRecord(
             # Core identifier
@@ -91,15 +74,19 @@ class ListingDataTransformer:
             maintenance_fee=listing.maintenance_fee,
             price_sqm=listing.price_sqm,
             # Property classification from parsed fields
+            # From "type"
             property_type=property_type,
             ownership_type=ownership,
             property_class=property_class,
-            contract_type=contract_info["contract_type"],
-            is_rent_to_own_available=False,
-            current_availability=enums.CurrentAvailability.AVAILABLE,
+            # From "contract"
+            contract_type=contract_type,
+            is_rent_to_own_available=rent_to_own,
+            current_availability=available,
             is_luxury=listing.is_luxury == "true" if listing.is_luxury else None,
             # Property condition
-            condition=self._parse_enumeration_field("condition", listing.condition or "", COND_MAP),
+            condition=self._parse_enumeration_field(
+                "condition", listing.condition or "", COND_MAP
+            ),
             # Property details
             surface=self._require_float(listing.surface, "surface"),
             rooms=listing.rooms,
@@ -112,12 +99,17 @@ class ListingDataTransformer:
             has_elevator=listing.elevator,
             garden=(
                 self._parse_enumeration_field("garden", listing.garden, GARDEN_MAP)
-                if isinstance(listing.garden, str) else None
+                if isinstance(listing.garden, str)
+                else None
             ),
             has_cellar=listing.cellar,
             has_basement=None,
-            furnished=self._parse_enumeration_field("furnished", listing.furnished or "", FURNITURE_MAP),
-            kitchen=self._parse_enumeration_field("kitchen", listing.kitchen or "", KITCHEN_MAP),
+            furnished=self._parse_enumeration_field(
+                "furnished", listing.furnished or "", FURNITURE_MAP
+            ),
+            kitchen=self._parse_enumeration_field(
+                "kitchen", listing.kitchen or "", KITCHEN_MAP
+            ),
             # Building info
             build_year=listing.build_year,
             has_concierge=listing.concierge,
@@ -136,7 +128,7 @@ class ListingDataTransformer:
             # Description
             description_title=listing.description_title,
             description=listing.description,
-            other_features=amenities,
+            other_features=other_features,
         )
 
     def _parse_composite_field(self, field_value: str, separator: str = " | ") -> List[str]:
@@ -212,21 +204,48 @@ class ListingDataTransformer:
         logger.warning("Unknown value '%s' for field '%s'", field_value_str, field_name)
         return None
 
-    def _parse_contract_field(self, contract_field: str) -> Dict[str, Any]:
-        """Parse the 'contract' field."""
-        if not contract_field:
+    def _parse_contract_field(
+            self,
+            contract_field: str
+    ) -> tuple[enums.ContractType, bool, enums.CurrentAvailability | None]:
+        """Parse the 'contract' field.
+        This field is a pipe-separated string with various, unsorted, information.
+        """
+        if not contract_field or not contract_field.strip():
             raise ValueError("Field 'contract' is empty or missing")
 
-        label = contract_field.strip()
-        # Try exact first (e.g., 'Vendita'), then lowercase mapping fallback
-        value = CONTRACT_MAP.get(label)
-        if value is None:
-            value = CONTRACT_MAP.get(label.lower())
+        contract_str = contract_field.strip()
 
-        if value is None:
+        # Match contract type
+        contract_type: enums.ContractType | None = None
+        for key, value in CONTRACT_MAP.items():
+            if key in contract_str:
+                contract_type = value
+                break
+
+        if contract_type is None:
             raise ValueError(f"Unknown contract type: [{contract_field}]")
 
-        return {"contract_type": value}
+        is_rent_to_own_available: bool = self._is_rent_to_own_available(contract_field)
+        is_currently_available: enums.CurrentAvailability | None = self._is_currently_available(contract_field)
+        return contract_type, is_rent_to_own_available, is_currently_available
+
+    def _is_rent_to_own_available(self, contract_field: str) -> bool:
+        """Check if rent-to-own is available based on the contract field."""
+        if not contract_field or not contract_field.strip():
+            return False
+        return "riscatto" in contract_field
+
+    def _is_currently_available(self, contract_field: str) -> enums.CurrentAvailability | None:
+        """Check the current availability based on the contract field."""
+        if not contract_field or not contract_field.strip():
+            return None
+        contract_field = contract_field.strip().lower()
+        if "libero" in contract_field:
+            return enums.CurrentAvailability.AVAILABLE
+        elif "a reddito" in contract_field:
+            return enums.CurrentAvailability.OCCUPIED
+        return None
 
     def _safe_bool_conversion(self, value: Optional[str]) -> Optional[bool]:
         """Safely convert string values to boolean."""
