@@ -98,7 +98,7 @@ class ListingDetails(QuantEstateDataObject):
     # Extendend description
     description_title: str | None = Field(None, description="Title in the property description")
     description: str = Field(..., description="Property description")
-    other_features: list[str] | None = Field(
+    other_amenities: list[str] | None = Field(
         None, description="List of other amenities or features"
     )
 
@@ -109,6 +109,7 @@ class ListingDetails(QuantEstateDataObject):
         # This method will automatically validate the data and convert it
         # to the appropriate types as defined in the model.
         # If the model changes, this will ensure that the data is still valid.
+        data.pop('_id', None)
         return ListingDetails.model_validate(data)
 
     def to_dict(self) -> dict:

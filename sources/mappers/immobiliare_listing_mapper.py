@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class ListingDataTransformer:
     """Transforms ListingDetails CSV data to ListingRecord instances."""
 
-    def _map(self, listing: ListingDetails) -> ListingRecord:
+    def map(self, listing: ListingDetails) -> ListingRecord:
         """Transform a single ListingDetails instance to a ListingRecord instance."""
         # Parse composite fields
         property_type, ownership, property_class = self._parse_type_field(listing.type)
@@ -46,7 +46,7 @@ class ListingDataTransformer:
             else None
         )
         surface: float = self._parse_surface(listing.surface_formatted)
-        garden: enums.Garden | None = self._parse_garden(listing.garden) if listing.garden else None
+        garden: enums.Garden | None = self._parse_garden(listing.garden)
         furnished: enums.FurnitureType | None = (
             self._parse_enumeration_field("furnished", listing.furnished, FURNITURE_MAP)
             if listing.furnished
@@ -58,9 +58,7 @@ class ListingDataTransformer:
             else None
         )
         zone, address = self._parse_address(listing.address) if listing.address else (None, None)
-        other_features = (
-            self._map_other_features(listing.other_features) if listing.other_features else None
-        )
+        other_features = self._map_other_features(listing.other_amenities) if listing.other_amenities else None
 
         # Create and validate the ListingRecord using Pydantic validations
         return ListingRecord(
@@ -270,9 +268,9 @@ class ListingDataTransformer:
         logger.warning("Could not extract number from surface: %s", surface_formatted)
         raise ValueError(f"Invalid surface format (no numerical values): {surface_formatted}")
 
-    def _parse_garden(self, garden_field: str) -> enums.Garden | None:
+    def _parse_garden(self, garden_field: str | bool | None) -> enums.Garden | None:
         """Parse the 'garden' field."""
-        if not garden_field or not garden_field.strip():
+        if not garden_field or isinstance(garden_field, bool) or not garden_field.strip():
             return None
         garden_field = garden_field.strip()
         return self._parse_enumeration_field("garden", garden_field, GARDEN_MAP)
