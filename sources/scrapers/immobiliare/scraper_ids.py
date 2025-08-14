@@ -1,20 +1,21 @@
 import logging
-import re
 import random
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-from selenium.webdriver.common.by import By
+import re
+from datetime import datetime
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from zoneinfo import ZoneInfo
+
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 
 from sources.config.model.scraper_settings import ScraperImmobiliareIdSettings
-from sources.config.model.storage_settings import CsvStorageSettings
 from sources.datamodel.listing_id import ListingId
-from sources.logging import logging_utils
 from sources.scrapers.selenium_scraper import SeleniumScraper
 from sources.storage.abstract_storage import Storage
-from sources.storage.file_storage import FileStorage
 
 SOURCE = "immobiliare"
+
 
 class ImmobiliareIdScraper(SeleniumScraper):
     """Scraper for Immobiliare.it using Selenium."""
@@ -23,7 +24,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
         self,
         storage: Storage,
         settings: ScraperImmobiliareIdSettings,
-        scrape_url: str = "https://www.immobiliare.it/vendita-case/milano/"
+        scrape_url: str = "https://www.immobiliare.it/vendita-case/milano/",
     ):
         """Initialize the Immobiliare scraper with specific settings."""
         super().__init__(storage, settings)
@@ -40,11 +41,11 @@ class ImmobiliareIdScraper(SeleniumScraper):
     @classmethod
     def _get_url_with_params(cls, settings: ScraperImmobiliareIdSettings, scrape_url: str) -> str:
         """Construct the scrape URL with sorting and filtering parameters.
-        
+
         Args:
             settings: Scraper configuration containing URL parameters
             scrape_url: Base URL to enhance with parameters
-            
+
         Returns:
             str: Complete URL with appended parameters
         """
@@ -68,14 +69,16 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
         # Reconstruct the URL with updated query parameters
         new_query = urlencode(flattened_params, doseq=False)
-        complete_url = urlunparse((
-            parsed_url.scheme,
-            parsed_url.netloc,
-            parsed_url.path,
-            parsed_url.params,
-            new_query,
-            parsed_url.fragment
-        ))
+        complete_url = urlunparse(
+            (
+                parsed_url.scheme,
+                parsed_url.netloc,
+                parsed_url.path,
+                parsed_url.params,
+                new_query,
+                parsed_url.fragment,
+            )
+        )
 
         return complete_url
 
@@ -95,9 +98,14 @@ class ImmobiliareIdScraper(SeleniumScraper):
             total_inserted = 0
             page_n = self._get_current_page_number(driver)
             end_page_n = page_n + self.settings.max_pages
-            self.logger.info("Going to scrape a max of [%d] listings or [%d] pages, from page [%d] to [%d]",
-                             self.settings.listing_limit, self.settings.max_pages, page_n, end_page_n)
-            
+            self.logger.info(
+                "Going to scrape a max of [%d] listings or [%d] pages, from page [%d] to [%d]",
+                self.settings.listing_limit,
+                self.settings.max_pages,
+                page_n,
+                end_page_n,
+            )
+
             while True:
                 self.logger.info(f"Scraping page {page_n}...")
 
@@ -106,14 +114,18 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 self._realistic_wait()
 
                 # Find all listing content containers
-                content_elements: list[WebElement] = driver.find_elements(By.CSS_SELECTOR, "div.styles_in-listingCardPropertyContent__tfu8w")
+                content_elements: list[WebElement] = driver.find_elements(
+                    By.CSS_SELECTOR, "div.styles_in-listingCardPropertyContent__tfu8w"
+                )
                 self.logger.info("Found %d listings", len(content_elements))
 
                 listings = []
-                for i, content_element in enumerate(content_elements):
+                for _i, content_element in enumerate(content_elements):
                     try:
                         # Find the link within the content container
-                        link_element = content_element.find_element(By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']")
+                        link_element = content_element.find_element(
+                            By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']"
+                        )
                         link = link_element.get_attribute("href")
                         if not link:
                             self.logger.warning("Listing without link found, skipping")
@@ -133,7 +145,13 @@ class ImmobiliareIdScraper(SeleniumScraper):
                             self.logger.warning("Skipping auction listing [%s]", link)
                             continue
 
-                        id = ListingId(source=SOURCE, source_id=source_id, title=title, url=link)
+                        id = ListingId(
+                            source=SOURCE, 
+                            source_id=source_id, 
+                            title=title, 
+                            url=link,
+                            fetch_date= datetime.now(tz=ZoneInfo("Europe/Rome"))
+                            )
                         listings.append(id)
 
                     except Exception as e:
@@ -146,16 +164,28 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
                 total_listings += len(listings)
                 total_inserted += inserted_count
-                self.logger.info("Listings scraped: [%d]. Listings inserted: [%d]", total_listings, total_inserted)
+                self.logger.info(
+                    "Listings scraped: [%d]. Listings inserted: [%d]",
+                    total_listings,
+                    total_inserted,
+                )
 
                 # Stop condition
                 if total_listings >= self.settings.listing_limit:
-                    self.logger.info("Reached the maximum number of [%d] listings, stopping", self.settings.listing_limit)
+                    self.logger.info(
+                        "Reached the maximum number of [%d] listings, stopping",
+                        self.settings.listing_limit,
+                    )
                     break
                 if page_n >= end_page_n:
-                    self.logger.info("Reached the maximum number of [%d] pages, stopping", end_page_n)
+                    self.logger.info(
+                        "Reached the maximum number of [%d] pages, stopping", end_page_n
+                    )
                     break
-                if total_listings == 0 or total_inserted / total_listings < self.settings.min_success_rate:
+                if (
+                    total_listings == 0
+                    or total_inserted / total_listings < self.settings.min_success_rate
+                ):
                     self.logger.error("Success rate below minimum threshold, stopping")
                     break
 
@@ -170,7 +200,9 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
                 next_page_n = self._get_current_page_number(driver)
                 if next_page_n == page_n:
-                    self.logger.error("No change in page number, we are still at [%d], stopping.", page_n)
+                    self.logger.error(
+                        "No change in page number, we are still at [%d], stopping.", page_n
+                    )
                     break
                 page_n = next_page_n
 
@@ -178,10 +210,10 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
     def _is_auction(self, content_element) -> bool:
         """Check if a listing has auction/variable pricing.
-        
+
         Args:
             content_element: WebElement representing the content container
-            
+
         Returns:
             bool: True if listing has auction pricing, False otherwise
         """
@@ -194,10 +226,10 @@ class ImmobiliareIdScraper(SeleniumScraper):
     @staticmethod
     def extract_listing_id(url: str) -> str | None:
         """Extract numerical ID from immobiliare.it listing URL.
-        
+
         Args:
             url: URL in format "https://www.immobiliare.it/annunci/{id}/"
-            
+
         Returns:
             Numerical ID as string, or None if not found
         """
@@ -225,9 +257,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
                 # Use ActionChains for more natural clicking
                 actions = ActionChains(driver)
-                actions.move_to_element(next_btn).pause(
-                    random.uniform(0.5, 1.5)
-                ).click().perform()
+                actions.move_to_element(next_btn).pause(random.uniform(0.5, 1.5)).click().perform()
 
                 self.logger.info("Clicked on 'Prossima pagina' button!")
                 # Wait for page to load

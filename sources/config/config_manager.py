@@ -1,26 +1,31 @@
 """
 Pydantic-based configuration manager for the quant-estate project.
 """
+
 from __future__ import annotations
 
 import logging
 import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sources.exceptions import ConfigurationError
 
 if TYPE_CHECKING:
+    from sources.config.model.scraper_settings import (
+        ScraperImmobiliareIdSettings,
+        ScraperImmobiliareListingSettings,
+    )
     from sources.config.model.storage_settings import StorageSettings
-    from sources.config.model.scraper_settings import ScraperImmobiliareIdSettings, ScraperImmobiliareListingSettings
 
 logger = logging.getLogger(__name__)
+
 
 class ConfigManager:
     """
     Configuration manager for the QuantEstate project.
-    
+
     Config file modifications at runtime will NOT be detected
     """
 
@@ -40,39 +45,41 @@ class ConfigManager:
 
     def _get_env_file_path(self, config_type: str) -> Path:
         """Get environment file path for specific config type.
-        
+
         Args:
             config_type: Configuration type identifier
-            
+
         Returns:
             Path: Absolute path to environment file
-            
+
         Raises:
             ConfigurationError: If environment file doesn't exist
         """
-        env_file_path = (
-            self._project_root / self._conf_folder / f"{config_type}.{self._env}.env"
-        )
+        env_file_path = self._project_root / self._conf_folder / f"{config_type}.{self._env}.env"
 
         if not env_file_path.exists():
             logger.warning(f"Environment file not found: {env_file_path}")
 
         return env_file_path
 
-    @lru_cache(maxsize=1)
     def get_storage_config(self) -> StorageSettings:
         """Load storage configuration based on environment variables.
-        
+
         Returns:
             StorageSettings: Configured storage settings instance
-            
+
         Raises:
             ConfigurationError: If configuration loading fails
         """
+        env_file_path = self._get_env_file_path("storage")
+        return self._get_storage_config(env_file_path)
+
+    @lru_cache(maxsize=1)
+    @staticmethod
+    def _get_storage_config(env_file_path) -> StorageSettings:
         try:
             from sources.config.model.storage_settings import StorageSettings
 
-            env_file_path = self._get_env_file_path("storage")
             settings = StorageSettings(_env_file=env_file_path)
             logger.info(f"Loaded storage config from [{env_file_path}]: [{settings}]")
             return settings
@@ -80,20 +87,24 @@ class ConfigManager:
             logger.error(f"Failed to load storage configuration: {e}")
             raise ConfigurationError(f"Storage configuration error: {e}") from e
 
-    @lru_cache(maxsize=1)
     def get_scraper_id_config(self) -> ScraperImmobiliareIdSettings:
         """Load scraper ID configuration based on environment variables.
-        
+
         Returns:
             ScraperImmobiliareIdSettings: Configured scraper ID settings instance
-            
+
         Raises:
             ConfigurationError: If configuration loading fails
         """
+        env_file_path = self._get_env_file_path("scraper_imm_id")
+        return self._get_scraper_id_config(env_file_path)
+
+    @lru_cache(maxsize=1)
+    @staticmethod
+    def _get_scraper_id_config(env_file_path) -> ScraperImmobiliareIdSettings:
         try:
             from sources.config.model.scraper_settings import ScraperImmobiliareIdSettings
 
-            env_file_path = self._get_env_file_path("scraper_imm_id")
             settings = ScraperImmobiliareIdSettings(_env_file=env_file_path)
             logger.info(f"Loaded scraper ID config from [{env_file_path}]: [{settings}]")
             return settings
@@ -101,20 +112,24 @@ class ConfigManager:
             logger.error(f"Failed to load scraper ID configuration: {e}")
             raise ConfigurationError(f"Scraper ID configuration error: {e}") from e
 
-    @lru_cache(maxsize=1)
     def get_scraper_listing_config(self) -> ScraperImmobiliareListingSettings:
         """Load scraper listing configuration based on environment variables.
-        
+
         Returns:
             ScraperImmobiliareListingSettings: Configured scraper listing settings instance
-            
+
         Raises:
             ConfigurationError: If configuration loading fails
         """
+        env_file_path = self._get_env_file_path("scraper_imm_listing")
+        return self._get_scraper_listing_config(env_file_path)
+
+    @lru_cache(maxsize=1)
+    @staticmethod
+    def _get_scraper_listing_config(env_file_path) -> ScraperImmobiliareListingSettings:
         try:
             from sources.config.model.scraper_settings import ScraperImmobiliareListingSettings
 
-            env_file_path = self._get_env_file_path("scraper_imm_listing")
             settings = ScraperImmobiliareListingSettings(_env_file=env_file_path)
             logger.info(f"Loaded scraper listing config from [{env_file_path}]: [{settings}]")
             return settings
@@ -128,7 +143,7 @@ class ConfigManager:
         This method clears all cached configuration objects, forcing them to be
         reloaded from environment variables and files on the next access.
         """
-        self.get_storage_config.cache_clear()
-        self.get_scraper_id_config.cache_clear()
-        self.get_scraper_listing_config.cache_clear()
+        self._get_storage_config.cache_clear()
+        self._get_scraper_id_config.cache_clear()
+        self._get_scraper_listing_config.cache_clear()
         logger.info("Configuration cache cleared - settings will be reloaded on next access")

@@ -11,6 +11,6 @@ from .mongo_storage import MongoDBStorage
 
 __all__ = [
     "Storage",
-    "FileStorage", 
+    "FileStorage",
     "MongoDBStorage",
 ]

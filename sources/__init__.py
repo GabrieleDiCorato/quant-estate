@@ -6,17 +6,17 @@ __version__ = "0.1.0"
 
 from .config import ConfigManager
 from .config.model import CsvStorageSettings, MongoStorageSettings, StorageSettings, StorageType
-from .logging import setup_logging, get_logger
-from .datamodel import ListingDetails, ListingId, QuantEstateDataObject, ContractType
+from .datamodel import ContractType, ListingDetails, ListingId, QuantEstateDataObject
 from .exceptions import (
+    ConfigurationError,
     ConnectorError,
     ScrapingError,
     StorageError,
     ValidationError,
-    ConfigurationError
 )
-from .storage import Storage, FileStorage, MongoDBStorage
-from .scrapers import SeleniumScraper, ImmobiliareIdScraper, ImmobiliareListingScraper
+from .logging import get_logger, setup_logging
+from .scrapers import ImmobiliareIdScraper, ImmobiliareListingScraper, SeleniumScraper
+from .storage import FileStorage, MongoDBStorage, Storage
 
 __all__ = [
     "ConfigManager",

@@ -1,11 +1,15 @@
 """
 Data model for real estate properties.
 """
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
 from pydantic import Field
+
 from .base_datamodel import QuantEstateDataObject
-from .enumerations import *
+from .enumerations import EnergyClass
+
 
 class ListingDetails(QuantEstateDataObject):
     """Data model for a real estate property."""
@@ -16,16 +20,25 @@ class ListingDetails(QuantEstateDataObject):
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
-    fetch_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
-    last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
+    fetch_date: datetime = Field(
+        datetime.now(tz=ZoneInfo("Europe/Rome")),
+        description="Timestamp of the last fetch of the listing details",
+    )
+    last_updated: datetime | None = Field(
+        None, description="Timestamp of the last update to the listing on the website (if provided)"
+    )
 
     # Pricing
     # We only consider listings with transparent offer price (no price upon demand, no auction)
     formatted_price: str = Field(..., description="Human-readable price string")
     price_eur: float = Field(..., description="Numeric price value in EUR", ge=0)
-    formatted_maintenance_fee: str | None = Field(None, description="Human-readable maintenance fee string")
+    formatted_maintenance_fee: str | None = Field(
+        None, description="Human-readable maintenance fee string"
+    )
     maintenance_fee: float | None = Field(None, description="Monthly maintenance fee in EUR", ge=0)
-    formatted_price_sqm: str | None = Field(None, description="Human-readable price per square meter string")
+    formatted_price_sqm: str | None = Field(
+        None, description="Human-readable price per square meter string"
+    )
     price_sqm: float | None = Field(None, description="Price per square meter in EUR", ge=0)
 
     # Property classification
@@ -33,7 +46,7 @@ class ListingDetails(QuantEstateDataObject):
     contract: str = Field(..., description="Type of contract (sale, rent, etc.)")
     condition: str | None = Field(None, description="Property condition (renovated, new, etc.)")
     # Derived field (from the "Condition" field)
-    #is_new: bool | None = Field(None, description="Whether the property is new construction")
+    # is_new: bool | None = Field(None, description="Whether the property is new construction")
     is_luxury: bool | None = Field(None, description="Whether this is a luxury property")
 
     # Property details
@@ -50,16 +63,22 @@ class ListingDetails(QuantEstateDataObject):
     balcony: bool | None = Field(None, description="Whether property has a balcony")
     terrace: bool | None = Field(None, description="Whether property has a terrace")
     elevator: bool | None = Field(None, description="Whether building has elevators")
-    garden: str | None = Field(None, description="Whether property has a garden, and its type (private, shared, etc.)")
-    cellar: bool | None = Field(None, description="Whether property has a cellar") # "Cantina"
+    garden: str | None = Field(
+        None, description="Whether property has a garden, and its type (private, shared, etc.)"
+    )
+    cellar: bool | None = Field(None, description="Whether property has a cellar")  # "Cantina"
     basement: bool | None = Field(None, description="Whether property has a basement")
     furnished: str | None = Field(None, description="Whether property is furnished")
     kitchen: str | None = Field(None, description="Type of kitchen (open, closed, etc.)")
 
     # Building Info
-    build_year: int | None = Field(None, description="Year the building was constructed", ge=1800, le=2100)
+    build_year: int | None = Field(
+        None, description="Year the building was constructed", ge=1800, le=2100
+    )
     concierge: bool | None = Field(None, description="Whether building has a concierge service")
-    is_accessible: bool | None = Field(None, description="Whether the property is accessible for people with disabilities")
+    is_accessible: bool | None = Field(
+        None, description="Whether the property is accessible for people with disabilities"
+    )
 
     # Energy and utilities
     heating_type: str | None = Field(None, description="Type of heating system")
@@ -72,13 +91,16 @@ class ListingDetails(QuantEstateDataObject):
     address: str | None = Field(None, description="Full address of the property")
 
     # Parking
-    parking_info: str | None = Field(None, description="Parking information (garage, street parking, etc.)")
+    parking_info: str | None = Field(
+        None, description="Parking information (garage, street parking, etc.)"
+    )
 
     # Extendend description
     description_title: str | None = Field(None, description="Title in the property description")
     description: str = Field(..., description="Property description")
-    other_features: list[str] | None = Field(None, description="List of other amenities or features")
-
+    other_features: list[str] | None = Field(
+        None, description="List of other amenities or features"
+    )
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingDetails":
@@ -91,4 +113,4 @@ class ListingDetails(QuantEstateDataObject):
 
     def to_dict(self) -> dict:
         """Convert the RealEstate instance to a dictionary."""
-        return self.model_dump() 
+        return self.model_dump()

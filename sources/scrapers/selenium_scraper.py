@@ -2,25 +2,26 @@
 Selenium-based web scraper base class using undetected-chromedriver.
 """
 
+import itertools
 import logging
 import random
 import time
-import itertools
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
 import undetected_chromedriver as uc
+from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
-from sources.storage.abstract_storage import Storage
 from sources.config.model.scraper_settings import ScraperSettings
+from sources.storage.abstract_storage import Storage
 
 from ..exceptions import ScrapingError
 
 logger = logging.getLogger(__name__)
+
 
 class SeleniumScraper(ABC):
     """Abstract base class for Selenium-based web scrapers."""
@@ -28,11 +29,7 @@ class SeleniumScraper(ABC):
     # Thread-safe atomic counter (to identify instances)
     _instance_counter = itertools.count(1)
 
-    def __init__(
-        self,
-        storage: Storage,
-        settings: ScraperSettings
-    ):
+    def __init__(self, storage: Storage, settings: ScraperSettings):
         """Initialize the scraper with configuration."""
         if not isinstance(settings, ScraperSettings):
             raise TypeError(f"Expected ScraperSettings, got {type(settings).__name__}")
@@ -50,10 +47,10 @@ class SeleniumScraper(ABC):
 
     def _create_driver(self) -> uc.Chrome:
         """Create and configure an undetected Chrome WebDriver instance.
-        
+
         Returns:
             uc.Chrome: Configured undetected Chrome instance
-            
+
         Raises:
             ScrapingError: If WebDriver creation fails
         """
@@ -95,7 +92,7 @@ class SeleniumScraper(ABC):
                 options=options,
                 version_main=None,  # Auto-detect Chrome version
                 driver_executable_path=None,  # Auto-download if needed
-                browser_executable_path=None  # Use system Chrome
+                browser_executable_path=None,  # Use system Chrome
             )
 
             # Configure timeouts
@@ -106,13 +103,15 @@ class SeleniumScraper(ABC):
             return driver
 
         except Exception as e:
-            self.logger.error("Failed to create undetected Chrome WebDriver: %s", str(e), exc_info=True)
-            raise ScrapingError(f"Failed to create WebDriver: {e}")
+            self.logger.error(
+                "Failed to create undetected Chrome WebDriver: %s", str(e), exc_info=True
+            )
+            raise ScrapingError(f"Failed to create WebDriver: {e}") from e
 
     @contextmanager
     def get_driver(self):
         """Context manager for WebDriver with proper cleanup.
-        
+
         Yields:
             uc.Chrome: Configured undetected Chrome instance
         """
@@ -137,7 +136,9 @@ class SeleniumScraper(ABC):
         self._realistic_wait()
         self.logger.info("Session is warmed up!")
 
-    def get_page(self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None) -> None:
+    def get_page(
+        self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None
+    ) -> None:
         """Navigate to a page and optionally wait for an element.
 
         Args:
@@ -163,17 +164,17 @@ class SeleniumScraper(ABC):
 
         except TimeoutException as e:
             self.logger.error("Timeout loading page %s: %s", url, str(e))
-            raise ScrapingError(f"Timeout loading page: {e}")
+            raise ScrapingError(f"Timeout loading page: {e}") from e
         except WebDriverException as e:
             self.logger.error("WebDriver error loading page %s: %s", url, str(e))
-            raise ScrapingError(f"WebDriver error: {e}")
+            raise ScrapingError(f"WebDriver error: {e}") from e
         except Exception as e:
             self.logger.error("Unexpected error loading page %s: %s", url, str(e), exc_info=True)
-            raise ScrapingError(f"Unexpected error loading page: {e}")
+            raise ScrapingError(f"Unexpected error loading page: {e}") from e
 
     def scroll_to_bottom(self, driver: uc.Chrome, pause_time: float = 1.0) -> None:
         """Scroll to the bottom of the page to load dynamic content.
-        
+
         Args:
             driver: Undetected Chrome instance
             pause_time: Time to pause between scrolls
@@ -233,9 +234,7 @@ class SeleniumScraper(ABC):
             self.logger.info("Waiting to close login popup...")
             # Wait for the login popup to appear
             WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, "div.ab-in-app-message.ab-modal")
-                )
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.ab-in-app-message.ab-modal"))
             )
             # Find and click the close button
             self.logger.info("Attempting to close login popup...")
@@ -258,7 +257,9 @@ class SeleniumScraper(ABC):
                 safe_y = random.randint(int(viewport_height * 0.3), int(viewport_height * 0.7))
 
                 driver.execute_script(f"document.elementFromPoint({safe_x}, {safe_y}).click();")
-                self.logger.debug("Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y)
+                self.logger.debug(
+                    "Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y
+                )
             except Exception as click_error:
                 self.logger.error("Could not click on safe location: %s", str(click_error))
 

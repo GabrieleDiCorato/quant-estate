@@ -2,6 +2,7 @@
 File containing all simple enumerations used in the project.
 Common to all connectors and data models.
 """
+
 from enum import Enum
 
 
@@ -60,6 +61,7 @@ class FurnitureType(BaseEnum):
 
 class Garden(BaseEnum):
     """Garden types for property listings."""
+
     PRIVATE = "private"
     SHARED = "shared"
     NONE = "none"
@@ -73,6 +75,7 @@ class HeatingType(BaseEnum):
 
 class KitchenType(BaseEnum):
     """Kitchen types for property listings."""
+
     HABITABLE = "habitable"
     OPEN_VIEW = "open_view"
     KITCHENETTE = "kitchenette"
@@ -82,12 +85,14 @@ class KitchenType(BaseEnum):
 
 class OwnershipType(BaseEnum):
     """Types of property ownership in Italian real estate."""
+
     FULL_OWNERSHIP = "full_ownership"
     BARE_OWNERSHIP = "bare_ownership"
 
 
 class PropertyClass(BaseEnum):
     """Property class classification based on quality and market positioning."""
+
     LUXURY = "upscale"
     MEDIUM = "medium"
     ECONOMIC = "economic"
@@ -96,6 +101,7 @@ class PropertyClass(BaseEnum):
 
 class PropertyCondition(BaseEnum):
     """Property condition classification."""
+
     EXCELLENT_RENOVATED = "excellent_renovated"
     TO_RENOVATE = "to_renovate"
     NEW_UNDER_CONSTRUCTION = "new_under_construction"
@@ -104,6 +110,7 @@ class PropertyCondition(BaseEnum):
 
 class PropertyType(BaseEnum):
     """Italian property subtypes for detailed classification."""
+
     APARTMENT = "apartment"
     PENTHOUSE = "penthouse"
     LOFT = "loft"
@@ -129,11 +136,13 @@ class RegionType(BaseEnum):
 
 class Source(BaseEnum):
     """Enumeration for data source types."""
+
     IMMOBILIARE = "immobiliare"
 
 
 class TvSystem(BaseEnum):
     """TV system types for property listings."""
+
     CENTRALIZED = "centralized"
     SATELLITE = "satellite"
     INDIVIDUAL = "individual"
@@ -141,6 +150,7 @@ class TvSystem(BaseEnum):
 
 class WindowGlassType(BaseEnum):
     """Window glass types for property listings."""
+
     SINGLE_GLASS = "single_glass"
     DOUBLE_GLASS = "double_glass"
     TRIPLE_GLASS = "triple_glass"
@@ -148,6 +158,7 @@ class WindowGlassType(BaseEnum):
 
 class WindowMaterial(BaseEnum):
     """Window frame materials for property listings."""
+
     WOOD = "wood"
     METAL = "metal"
     PVC = "pvc"

@@ -4,6 +4,7 @@ Basic data model configuration for our real estate application.
 
 from pydantic import BaseModel, ConfigDict
 
+
 class QuantEstateDataObject(BaseModel):
     """Base class for all data objects in the QuantEstate application."""
 
@@ -20,5 +21,5 @@ class QuantEstateDataObject(BaseModel):
         # Performance & looks
         cache_strings=True,
         # Fundamental for mongo compatibility
-        use_enum_values=True
+        use_enum_values=True,
     )

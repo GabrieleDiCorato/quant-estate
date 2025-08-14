@@ -3,9 +3,11 @@ Data model for real estate properties.
 """
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+import enumerations as enums
 from pydantic import Field
+
 from .base_datamodel import QuantEstateDataObject
-from .enumerations import *
 
 
 class OtherFeatures(QuantEstateDataObject):
@@ -17,7 +19,7 @@ class OtherFeatures(QuantEstateDataObject):
     has_electric_gate: bool | None = Field(None, description="Whether property has electric gate (Cancello elettrico)")
     has_kitchen: bool | None = Field(None, description="Whether property has a kitchen (Cucina)")
     has_fiber_optic: bool | None = Field(None, description="Whether property has fiber optic connection (Fibra ottica)")
-    has_private_or_shared_garden: bool | None = Field(None, description="Whether property has both private and shared garden (Giardino privato e comune)")
+    has_private_or_shared_garden: bool | None = Field(None, description="Whether property has both private and shared garden")
     has_hot_tub: bool | None = Field(None, description="Whether property has hot tub/jacuzzi (Idromassaggio)")
     has_alarm_system: bool | None = Field(None, description="Whether property has alarm system (Impianto di allarme)")
     has_attic: bool | None = Field(None, description="Whether property has attic (Mansarda)")
@@ -26,9 +28,9 @@ class OtherFeatures(QuantEstateDataObject):
     has_reception: bool | None = Field(None, description="Whether building has reception (Reception)")
     has_tavern: bool | None = Field(None, description="Whether property has tavern/basement room (Taverna)")
     has_video_intercom: bool | None = Field(None, description="Whether building has video intercom (VideoCitofono)")
-    tv_system: TvSystem | None = Field(None, description="TV system type")
-    window_glass_type: WindowGlassType | None = Field(None, description="Type of window glass")
-    window_material: WindowMaterial | None = Field(None, description="Window frame material")
+    tv_system: enums.TvSystem | None = Field(None, description="TV system type")
+    window_glass_type: enums.WindowGlassType | None = Field(None, description="Type of window glass")
+    window_material: enums.WindowMaterial | None = Field(None, description="Window frame material")
     sun_exposure: str | None = Field(None, description="Sun exposure of the property (e.g., south, north, etc.)")
 
 
@@ -44,7 +46,7 @@ class ListingRecord(QuantEstateDataObject):
     fetch_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
     etl_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Creation timestamp of the record in the database")
-    
+
     # Pricing
     # We only consider listings with transparent offer price (no price upon demand, no auction)
     price_eur: float = Field(..., description="Numeric price value in EUR", ge=0)
@@ -53,17 +55,24 @@ class ListingRecord(QuantEstateDataObject):
 
     # Property classification
     # From "type":
-    property_type: PropertyType = Field(..., description="Specific property type (e.g., apartment, villa, etc.)")
-    ownership_type: OwnershipType | None = Field(None, description="Type of ownership rights")
-    property_class: PropertyClass | None = Field(None, description="Property class based on quality and market positioning")
+    property_type: enums.PropertyType = Field(
+        ..., description="Specific property type (e.g., apartment, villa, etc.)"
+    )
+    ownership_type: enums.OwnershipType | None = Field(None, description="Type of ownership rights")
+    property_class: enums.PropertyClass | None = Field(None, description="Property class based on quality and market positioning")
     # From "contract":
-    contract_type: ContractType = Field(..., description="Type of contract (sale, rent, etc.)")
+    contract_type: enums.ContractType = Field(
+        ..., description="Type of contract (sale, rent, etc.)"
+    )
     is_rent_to_own_available: bool = Field(False, description="Whether the property is available for rent-to-own") 
-    current_availability: CurrentAvailability | None = Field(None, description="Current availability status of the property")
-    is_luxury: bool | None = Field(None, description="Whether this is a luxury property")
-
+    current_availability: enums.CurrentAvailability | None = Field(
+        None, description="Current availability status of the property"
+    )
     # From "condition":
-    condition: PropertyCondition | None = Field(None, description="Property condition")
+    condition: enums.PropertyCondition | None = Field(
+        None, description="Property condition"
+    )
+    is_luxury: bool | None = Field(None, description="Whether this is a luxury property")
 
     # Property details
     surface: float = Field(..., description="Property surface area in square meters", ge=0)
@@ -79,11 +88,18 @@ class ListingRecord(QuantEstateDataObject):
     has_balcony: bool | None = Field(None, description="Whether property has a balcony")
     has_terrace: bool | None = Field(None, description="Whether property has a terrace")
     has_elevator: bool | None = Field(None, description="Whether building has elevators")
-    garden: Garden | None = Field(None, description="Whether property has a garden, and its type (private, shared, etc.)")
+    garden: enums.Garden | None = Field(
+        None,
+        description="Whether property has a garden, and its type (private, shared, etc.)",
+    )
     has_cellar: bool | None = Field(None, description="Whether property has a cellar") # "Cantina"
     has_basement: bool | None = Field(None, description="Whether property has a basement")
-    furnished: FurnitureType | None = Field(None, description="Whether property is furnished")
-    kitchen: KitchenType | None = Field(None, description="Type of kitchen (open, closed, etc.)")
+    furnished: enums.FurnitureType | None = Field(
+        None, description="Whether property is furnished"
+    )
+    kitchen: enums.KitchenType | None = Field(
+        None, description="Type of kitchen (open, closed, etc.)"
+    )
 
     # Building Info
     build_year: int | None = Field(None, description="Year the building was constructed", ge=1800, le=2100)
@@ -93,7 +109,9 @@ class ListingRecord(QuantEstateDataObject):
     # Energy and utilities
     heating_type: str | None = Field(None, description="Type of heating system")
     air_conditioning: str | None = Field(None, description="Air conditioning type")
-    energy_class: EnergyClass | None = Field(None, description="Energy efficiency class")
+    energy_class: enums.EnergyClass | None = Field(
+        None, description="Energy efficiency class"
+    )
 
     # Location
     country: str = Field(..., description="Country code")
@@ -110,7 +128,6 @@ class ListingRecord(QuantEstateDataObject):
 
     # From "other_amenities":
     other_features: OtherFeatures | None = Field(None, description="Additional features of the property")
-
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingRecord":

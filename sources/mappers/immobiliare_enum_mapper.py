@@ -7,9 +7,27 @@ into our internal, JSON-friendly enum values defined in sources.datamodel.enumer
 
 from __future__ import annotations
 
-from typing import Final, Mapping
+from collections.abc import Mapping
 from types import MappingProxyType
-from sources.datamodel.enumerations import *
+from typing import Final
+
+from sources.datamodel.enumerations import (
+    AirConditioningType,
+    ContractType,
+    CurrentAvailability,
+    EnergyClass,
+    FurnitureType,
+    Garden,
+    HeatingType,
+    KitchenType,
+    OwnershipType,
+    PropertyClass,
+    PropertyCondition,
+    PropertyType,
+    RegionType,
+    TvSystem,
+    WindowMaterial,
+)
 
 # FurnitureType
 _IMM_FURNITURE_MAP: dict[str, FurnitureType] = {
@@ -18,9 +36,7 @@ _IMM_FURNITURE_MAP: dict[str, FurnitureType] = {
     "Solo cucina arredata": FurnitureType.ONLY_KITCHEN,
     "No": FurnitureType.NO,
 }
-IMM_FURNITURE_MAP: Final[Mapping[str, FurnitureType]] = MappingProxyType(
-    _IMM_FURNITURE_MAP
-)
+IMM_FURNITURE_MAP: Final[Mapping[str, FurnitureType]] = MappingProxyType(_IMM_FURNITURE_MAP)
 
 # Garden
 _IMM_GARDEN_MAP: dict[str, Garden] = {
@@ -28,7 +44,7 @@ _IMM_GARDEN_MAP: dict[str, Garden] = {
     "Giardino comune": Garden.SHARED,
     "Nessun giardino": Garden.NONE,
     # TODO remove
-    "FALSE": Garden.NONE, # backward compatibility
+    "FALSE": Garden.NONE,  # backward compatibility
 }
 IMM_GARDEN_MAP: Final[Mapping[str, Garden]] = MappingProxyType(_IMM_GARDEN_MAP)
 
@@ -47,9 +63,7 @@ _IMM_OWNERSHIP_MAP: dict[str, OwnershipType] = {
     "Intera proprietà": OwnershipType.FULL_OWNERSHIP,
     "Nuda proprietà": OwnershipType.BARE_OWNERSHIP,
 }
-IMM_OWNERSHIP_MAP: Final[Mapping[str, OwnershipType]] = MappingProxyType(
-    _IMM_OWNERSHIP_MAP
-)
+IMM_OWNERSHIP_MAP: Final[Mapping[str, OwnershipType]] = MappingProxyType(_IMM_OWNERSHIP_MAP)
 
 # PropertyClass
 _IMM_PROPERTY_CLASS_MAP: dict[str, PropertyClass] = {
@@ -88,9 +102,7 @@ _IMM_PROPERTY_TYPE_MAP: dict[str, PropertyType] = {
     "Villa plurifamiliare": PropertyType.MULTI_FAMILY_VILLA,
     "Rustico": PropertyType.RUSTIC_HOUSE,
 }
-IMM_PROPERTY_TYPE_MAP: Final[Mapping[str, PropertyType]] = MappingProxyType(
-    _IMM_PROPERTY_TYPE_MAP
-)
+IMM_PROPERTY_TYPE_MAP: Final[Mapping[str, PropertyType]] = MappingProxyType(_IMM_PROPERTY_TYPE_MAP)
 
 # TvSystem
 _IMM_TV_SYSTEM_MAP: dict[str, TvSystem] = {
@@ -115,9 +127,7 @@ _IMM_CONTRACT_TYPE_MAP: dict[str, ContractType] = {
     "Vendita": ContractType.SALE,
     "Affitto": ContractType.RENT,
 }
-IMM_CONTRACT_TYPE_MAP: Final[Mapping[str, ContractType]] = MappingProxyType(
-    _IMM_CONTRACT_TYPE_MAP
-)
+IMM_CONTRACT_TYPE_MAP: Final[Mapping[str, ContractType]] = MappingProxyType(_IMM_CONTRACT_TYPE_MAP)
 
 _IMM_AIR_CONDITIONING_MAP: dict[str, AirConditioningType] = {
     "centralizzato": AirConditioningType.CENTRAL,
@@ -137,17 +147,15 @@ IMM_HEATING_MAP: Final[Mapping[str, HeatingType]] = MappingProxyType(_IMM_HEATIN
 
 # Energy class labels are already A, A+, etc.
 _IMM_ENERGY_CLASS_MAP: dict[str, EnergyClass] = {e.value: e for e in EnergyClass}
-IMM_ENERGY_CLASS_MAP: Final[Mapping[str, EnergyClass]] = MappingProxyType(
-    _IMM_ENERGY_CLASS_MAP
-)
+IMM_ENERGY_CLASS_MAP: Final[Mapping[str, EnergyClass]] = MappingProxyType(_IMM_ENERGY_CLASS_MAP)
 
 # For completeness, keep placeholders for enums not typically labeled from site text
 _IMM_CURRENT_AVAILABILITY_MAP: dict[str, CurrentAvailability] = {
     "disponibile": CurrentAvailability.AVAILABLE,
     "occupato": CurrentAvailability.OCCUPIED,
 }
-IMM_CURRENT_AVAILABILITY_MAP: Final[Mapping[str, CurrentAvailability]] = (
-    MappingProxyType(_IMM_CURRENT_AVAILABILITY_MAP)
+IMM_CURRENT_AVAILABILITY_MAP: Final[Mapping[str, CurrentAvailability]] = MappingProxyType(
+    _IMM_CURRENT_AVAILABILITY_MAP
 )
 
 _IMM_REGION_MAP: dict[str, RegionType] = {

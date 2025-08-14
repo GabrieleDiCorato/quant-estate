@@ -2,14 +2,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Type, TYPE_CHECKING
 
 from sources.config.model.storage_settings import StorageSettings, StorageType
 from sources.datamodel.base_datamodel import QuantEstateDataObject
-
-if TYPE_CHECKING:
-    from sources.storage.file_storage import FileStorage
-    from sources.storage.mongo_storage import MongoDBStorage
 
 
 class Storage[T: QuantEstateDataObject](ABC):
@@ -23,7 +18,7 @@ class Storage[T: QuantEstateDataObject](ABC):
             data: List of data items to append
 
         Returns:
-            bool: True if data was successfully appended
+            int: Number of records appended
 
         Raises:
             StorageError: If there's an error storing the data
@@ -31,7 +26,7 @@ class Storage[T: QuantEstateDataObject](ABC):
         pass
 
     @classmethod
-    def create_storage(cls, data_type: Type[T], config: StorageSettings) -> Storage[T]:
+    def create_storage(cls, data_type: type[T], config: StorageSettings) -> Storage[T]:
         """Factory method to create storage instance based on configuration.
 
         Args:

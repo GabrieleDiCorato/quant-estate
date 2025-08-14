@@ -3,29 +3,27 @@ Storage implementations for immobiliare.it data.
 """
 
 import logging
-from typing import Type
-from urllib.parse import quote_plus
 from collections.abc import Sequence
 from contextlib import contextmanager
 
 from pymongo import MongoClient
 from pymongo.errors import BulkWriteError
 
-from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.config.model.storage_settings import MongoStorageSettings
-from sources.storage.abstract_storage import Storage
+from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.datamodel.listing_details import ListingDetails
 from sources.exceptions import StorageError
-
+from sources.storage.abstract_storage import Storage
 
 logger = logging.getLogger(__name__)
+
 
 class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
     """MongoDB-based storage implementation."""
 
-    def __init__(self, data_type: Type[T], config: MongoStorageSettings):
+    def __init__(self, data_type: type[T], config: MongoStorageSettings):
         """Initialize MongoDB storage.
-        
+
         Args:
             data_type: The specific QuantEstateDataObject subclass to handle
             config: Configuration with MongoDB connection parameters
@@ -51,7 +49,7 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
             with self._get_client() as client:
                 client.admin.command('ping')
         except Exception as e:
-            raise StorageError(f"Failed to connect to MongoDB: {e}")
+            raise StorageError(f"Failed to connect to MongoDB: {e}") from e
 
     def _ensure_indexes(self) -> None:
         """Create necessary indexes for the collections."""
@@ -94,14 +92,18 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
         """
         if not data:
             logger.warning("No data to store")
-            return False
+            return 0
 
         logger.info("Storing %d %s records", len(data), self.data_type.__name__)
 
         try:
             with self._get_client() as client:
                 db = client[self.database]
-                collection_str = self.config.collection_listings if isinstance(data[0], ListingDetails) else self.config.collection_ids
+                collection_str = (
+                    self.config.collection_listings
+                    if isinstance(data[0], ListingDetails)
+                    else self.config.collection_ids
+                )
                 db_collection = db[collection_str]
 
                 # Exclude None values from serialization to avoid storing null fields in MongoDB
@@ -111,20 +113,27 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
                 try:
                     result = db_collection.insert_many(documents, ordered=False)
                     inserted_count = len(result.inserted_ids)
-                    logger.info("Successfully inserted %d new documents into collection: [%s]", 
-                            inserted_count, collection_str)
+                    logger.info(
+                        "Successfully inserted %d new documents into collection: [%s]",
+                        inserted_count,
+                        collection_str,
+                    )
                     return inserted_count
                 except BulkWriteError as e:
                     # Extract successful insertions from bulk write exception
                     inserted_count = getattr(e, 'details', {}).get('nInserted', 0)
                     duplicate_count = len(documents) - inserted_count
-                    logger.info("Inserted %d new documents, skipped %d duplicates in collection: [%s]", 
-                            inserted_count, duplicate_count, collection_str)
+                    logger.info(
+                        "Inserted %d new documents, skipped %d duplicates in collection: [%s]",
+                        inserted_count,
+                        duplicate_count,
+                        collection_str,
+                    )
                     return inserted_count
 
         except Exception as e:
             logger.error("Failed to append to MongoDB: %s", str(e), exc_info=True)
-            raise StorageError(f"Failed to append to MongoDB: {e}")
+            raise StorageError(f"Failed to append to MongoDB: {e}") from e
 
     def __enter__(self):
         """Context manager entry."""
