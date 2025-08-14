@@ -16,7 +16,7 @@ class ListingId(QuantEstateDataObject):
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     fetch_date: datetime | None = Field(
-        datetime.now(tz=ZoneInfo("Europe/Rome")),
+        default_factory=QuantEstateDataObject.get_timestamp,
         description="Timestamp of the last fetch of the listing details",
     )  # Optional for backward compatibility
 

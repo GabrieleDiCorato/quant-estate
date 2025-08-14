@@ -2,6 +2,8 @@
 Basic data model configuration for our real estate application.
 """
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict
 
 
@@ -23,3 +25,8 @@ class QuantEstateDataObject(BaseModel):
         # Fundamental for mongo compatibility
         use_enum_values=True,
     )
+
+    @classmethod
+    def get_timestamp(cls) -> datetime:
+        """Get the current timestamp in the Europe/Rome timezone."""
+        return datetime.now(tz=ZoneInfo("Europe/Rome"))

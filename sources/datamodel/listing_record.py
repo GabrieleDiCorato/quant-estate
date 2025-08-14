@@ -36,16 +36,16 @@ class OtherFeatures(QuantEstateDataObject):
 
 class ListingRecord(QuantEstateDataObject):
     """Data model for a real estate property. The normalized and cleaned version of ListingDetails."""
-
+    
     # Core identifier
     id: str = Field(..., description="Unique QuantEstate identifier for the property listing")
     source: str = Field(..., description="Source of the listing data (e.g., IMMOBILIARE)")
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
-    fetch_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Timestamp of the last fetch of the listing details")
+    fetch_date: datetime = Field(default_factory=QuantEstateDataObject.get_timestamp, description="Timestamp of the last fetch of the listing details")
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
-    etl_date: datetime = Field(datetime.now(tz=ZoneInfo("Europe/Rome")), description="Creation timestamp of the record in the database")
+    etl_date: datetime = Field(default_factory=QuantEstateDataObject.get_timestamp, description="Creation timestamp of the record in the database")
 
     # Pricing
     # We only consider listings with transparent offer price (no price upon demand, no auction)
