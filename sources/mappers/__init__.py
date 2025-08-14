@@ -15,7 +15,6 @@ from .immobiliare_enum_mapper import (
     IMM_PROPERTY_CLASS_MAP,
     IMM_PROPERTY_TYPE_MAP,
     IMM_TV_SYSTEM_MAP,
-    IMM_WINDOW_GLASS_MAP,
     IMM_WINDOW_MATERIAL_MAP,
     IMM_OTHER_FEATURES
 )

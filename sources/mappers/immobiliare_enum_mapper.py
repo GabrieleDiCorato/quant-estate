@@ -27,6 +27,8 @@ _IMM_GARDEN_MAP: dict[str, Garden] = {
     "Giardino privato": Garden.PRIVATE,
     "Giardino comune": Garden.SHARED,
     "Nessun giardino": Garden.NONE,
+    # TODO remove
+    "FALSE": Garden.NONE, # backward compatibility
 }
 IMM_GARDEN_MAP: Final[Mapping[str, Garden]] = MappingProxyType(_IMM_GARDEN_MAP)
 
@@ -97,16 +99,6 @@ _IMM_TV_SYSTEM_MAP: dict[str, TvSystem] = {
     "Impianto tv singolo": TvSystem.INDIVIDUAL,
 }
 IMM_TV_SYSTEM_MAP: Final[Mapping[str, TvSystem]] = MappingProxyType(_IMM_TV_SYSTEM_MAP)
-
-# WindowGlassType (comes embedded in amenities text)
-_IMM_WINDOW_GLASS_MAP: dict[str, WindowGlassType] = {
-    "vetro": WindowGlassType.SINGLE_GLASS,
-    "doppio vetro": WindowGlassType.DOUBLE_GLASS,
-    "triplo vetro": WindowGlassType.TRIPLE_GLASS,
-}
-IMM_WINDOW_GLASS_MAP: Final[Mapping[str, WindowGlassType]] = MappingProxyType(
-    _IMM_WINDOW_GLASS_MAP
-)
 
 # WindowMaterial (comes embedded in amenities text)
 _IMM_WINDOW_MATERIAL_MAP: dict[str, WindowMaterial] = {
