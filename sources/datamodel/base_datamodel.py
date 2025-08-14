@@ -4,6 +4,7 @@ Basic data model configuration for our real estate application.
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
 from pydantic import BaseModel, ConfigDict
 
 

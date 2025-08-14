@@ -2,11 +2,10 @@
 Data model for real estate properties.
 """
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
-from . import enumerations as enums
 from pydantic import Field
 
+from . import enumerations as enums
 from .base_datamodel import QuantEstateDataObject
 
 
@@ -43,7 +42,10 @@ class ListingRecord(QuantEstateDataObject):
     title: str = Field(..., description="Title of the property listing")
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
-    fetch_date: datetime = Field(default_factory=QuantEstateDataObject.get_timestamp, description="Timestamp of the last fetch of the listing details")
+    fetch_date: datetime = Field(
+        default_factory=QuantEstateDataObject.get_timestamp,
+        description="Timestamp of the last fetch of the listing details"
+    )
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
     etl_date: datetime = Field(default_factory=QuantEstateDataObject.get_timestamp, description="Creation timestamp of the record in the database")
 

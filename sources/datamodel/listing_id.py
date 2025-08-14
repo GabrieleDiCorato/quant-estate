@@ -1,6 +1,5 @@
 from datetime import datetime
 from functools import cached_property
-from zoneinfo import ZoneInfo
 
 from pydantic import Field, computed_field
 

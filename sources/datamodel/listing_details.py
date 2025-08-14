@@ -3,7 +3,6 @@ Data model for real estate properties.
 """
 
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from pydantic import Field
 
