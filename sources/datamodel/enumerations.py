@@ -88,6 +88,7 @@ class OwnershipType(BaseEnum):
 
     FULL_OWNERSHIP = "full_ownership"
     BARE_OWNERSHIP = "bare_ownership"
+    SURFACE_RIGHT = "surface_right"
 
 
 class PropertyClass(BaseEnum):

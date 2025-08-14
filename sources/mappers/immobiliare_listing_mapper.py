@@ -133,6 +133,7 @@ class ListingDataTransformer:
         self, type_field: str
     ) -> tuple[enums.PropertyType, enums.OwnershipType | None, enums.PropertyClass | None]:
         """Parse the 'type' field which contains property type, ownership, and class info."""
+        logger.debug("Parsing 'type' field: %s", type_field)
         parts = self._parse_composite_field(type_field, separator="|")
 
         # The first part is always the property type
@@ -149,23 +150,22 @@ class ListingDataTransformer:
             return property_type, None, None
         elif len(parts) == 2:
             second_part = parts[1]
-            # Try to parse second part as ownership type first
+            # Try to parse second part as ownership type first. The parse is not strict since it's an attempt
             ownership_type = self._parse_enumeration_field(
-                "ownership_type", second_part, OWNERSHIP_MAP
+                "ownership_type", second_part, OWNERSHIP_MAP, strict=False
             )
 
             # If second part is not an ownership type, try as property class
-            if ownership_type is None:
+            if ownership_type is not None:
+                return property_type, ownership_type, None
+            else:
                 property_class = self._parse_enumeration_field(
                     "property_class", second_part, CLASS_MAP
                 )
-                return property_type, ownership_type, property_class
-            else:
-                logger.warning(
-                    "Failed to parse string '%s' as either ownership type or property class",
-                    second_part,
-                )
-                return property_type, ownership_type, None
+                if property_class is None:
+                    logger.warning("Failed to parse string [%s] as either ownership type or property class", second_part)
+                
+                return property_type, None, property_class
         else:
             if len(parts) > 3:
                 logger.warning("Unexpected number of parts in 'type' field: %s", parts)
@@ -184,6 +184,7 @@ class ListingDataTransformer:
         field_name: str,
         field_value_str: str,
         mapping: Mapping[str, T],
+        strict=True
     ) -> T | None:
         """Parse a field that maps to an enumeration."""
         if not field_value_str or str(field_value_str).strip() == "":
@@ -195,11 +196,13 @@ class ListingDataTransformer:
         if parsed_value is not None:
             return parsed_value
         # Case-insensitive fallback
-        raw_lower = raw_str.lower()
-        for k, v in mapping.items():
-            if k.lower() == raw_lower:
-                return v
-        logger.warning("Unknown value '%s' for field '%s'", field_value_str, field_name)
+        if not strict:
+            raw_lower = raw_str.lower()
+            for k, v in mapping.items():
+                if k.lower() == raw_lower:
+                    return v
+        if strict:
+            logger.warning("Unknown value '%s' for field '%s'", field_value_str, field_name)
         return None
 
     def _parse_contract_field(

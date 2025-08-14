@@ -32,8 +32,8 @@ from sources.datamodel.enumerations import (
 # FurnitureType
 _IMM_FURNITURE_MAP: dict[str, FurnitureType] = {
     "Sì": FurnitureType.FULLY_FURNISHED,
-    "Parzialmente arredato": FurnitureType.PARTIALLY_FURNISHED,
-    "Solo cucina arredata": FurnitureType.ONLY_KITCHEN,
+    "Parzialmente Arredato": FurnitureType.PARTIALLY_FURNISHED,
+    "Solo Cucina Arredata": FurnitureType.ONLY_KITCHEN,
     "No": FurnitureType.NO,
 }
 IMM_FURNITURE_MAP: Final[Mapping[str, FurnitureType]] = MappingProxyType(_IMM_FURNITURE_MAP)
@@ -62,6 +62,7 @@ IMM_KITCHEN_MAP: Final[Mapping[str, KitchenType]] = MappingProxyType(_IMM_KITCHE
 _IMM_OWNERSHIP_MAP: dict[str, OwnershipType] = {
     "Intera proprietà": OwnershipType.FULL_OWNERSHIP,
     "Nuda proprietà": OwnershipType.BARE_OWNERSHIP,
+    "Diritto di superficie": OwnershipType.SURFACE_RIGHT
 }
 IMM_OWNERSHIP_MAP: Final[Mapping[str, OwnershipType]] = MappingProxyType(_IMM_OWNERSHIP_MAP)
 
