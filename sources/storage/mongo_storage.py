@@ -12,6 +12,8 @@ from pymongo.errors import BulkWriteError
 from sources.config.model.storage_settings import MongoStorageSettings
 from sources.datamodel.base_datamodel import QuantEstateDataObject
 from sources.datamodel.listing_details import ListingDetails
+from sources.datamodel.listing_id import ListingId
+from sources.datamodel.listing_record import ListingRecord
 from sources.exceptions import StorageError
 from sources.storage.abstract_storage import Storage
 
@@ -35,6 +37,7 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
         self.config = config
         self.connection_string = self.config.connection_string
         self.database = self.config.database
+        self.collection = self._get_collection_from_type(data_type)
         self._client = None
 
         # Test connection and log safely
@@ -42,6 +45,17 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
         self._ensure_indexes()
 
         logger.info("Initialized MongoDBStorage connection to [%s]", self.database)
+
+    def _get_collection_from_type(self, data_type: type[T]) -> str:
+        """Get MongoDB collection name based on data type."""
+        if issubclass(data_type, ListingDetails):
+            return self.config.collection_listings
+        elif issubclass(data_type, ListingId):
+            return self.config.collection_ids
+        elif issubclass(data_type, ListingRecord):
+            return self.config.collection_records
+        else:
+            raise ValueError(f"Unknown data type: {data_type}")
 
     def _test_connection(self) -> None:
         """Test MongoDB connection without exposing credentials."""
@@ -64,6 +78,9 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
 
                 listings_collection = db[self.config.collection_listings]
                 listings_collection.create_index("id", unique=True)
+
+                records_collection = db[self.config.collection_records]
+                records_collection.create_index("id", unique=True)
 
                 logger.info("Ensured unique indexes on 'id' field")
         except Exception as e:
@@ -99,13 +116,7 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
         try:
             with self._get_client() as client:
                 db = client[self.database]
-                collection_str = (
-                    self.config.collection_listings
-                    if isinstance(data[0], ListingDetails)
-                    else self.config.collection_ids
-                )
-                db_collection = db[collection_str]
-
+                db_collection = db[self.collection]
                 # Exclude None values from serialization to avoid storing null fields in MongoDB
                 documents = [item.model_dump(exclude_none=True) for item in data]
 
@@ -116,7 +127,7 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
                     logger.info(
                         "Successfully inserted %d new documents into collection: [%s]",
                         inserted_count,
-                        collection_str,
+                        self.collection,
                     )
                     return inserted_count
                 except BulkWriteError as e:
@@ -127,7 +138,7 @@ class MongoDBStorage[T: QuantEstateDataObject](Storage[T]):
                         "Inserted %d new documents, skipped %d duplicates in collection: [%s]",
                         inserted_count,
                         duplicate_count,
-                        collection_str,
+                        self.collection,
                     )
                     return inserted_count
 

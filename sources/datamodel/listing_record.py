@@ -4,7 +4,7 @@ Data model for real estate properties.
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import enumerations as enums
+from . import enumerations as enums
 from pydantic import Field
 
 from .base_datamodel import QuantEstateDataObject

@@ -74,8 +74,8 @@ class ConfigManager:
         env_file_path = self._get_env_file_path("storage")
         return self._get_storage_config(env_file_path)
 
-    @lru_cache(maxsize=1)
     @staticmethod
+    @lru_cache(maxsize=1)
     def _get_storage_config(env_file_path) -> StorageSettings:
         try:
             from sources.config.model.storage_settings import StorageSettings
@@ -99,8 +99,8 @@ class ConfigManager:
         env_file_path = self._get_env_file_path("scraper_imm_id")
         return self._get_scraper_id_config(env_file_path)
 
-    @lru_cache(maxsize=1)
     @staticmethod
+    @lru_cache(maxsize=1)
     def _get_scraper_id_config(env_file_path) -> ScraperImmobiliareIdSettings:
         try:
             from sources.config.model.scraper_settings import ScraperImmobiliareIdSettings
@@ -124,8 +124,8 @@ class ConfigManager:
         env_file_path = self._get_env_file_path("scraper_imm_listing")
         return self._get_scraper_listing_config(env_file_path)
 
-    @lru_cache(maxsize=1)
     @staticmethod
+    @lru_cache(maxsize=1)
     def _get_scraper_listing_config(env_file_path) -> ScraperImmobiliareListingSettings:
         try:
             from sources.config.model.scraper_settings import ScraperImmobiliareListingSettings

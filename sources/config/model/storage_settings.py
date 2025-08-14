@@ -32,6 +32,9 @@ class MongoStorageSettings(BaseModel):
     collection_listings: str = Field(
         default="listings", description="Collection name for storing listings"
     )
+    collection_records: str = Field(
+        default="records", description="Collection name for storing records"
+    )
     max_pool_size: int = Field(default=100, description="Maximum pool size for MongoDB connections")
     min_pool_size: int = Field(default=10, description="Minimum pool size for MongoDB connections")
     max_idle_time_ms: int = Field(
