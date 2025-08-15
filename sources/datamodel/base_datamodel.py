@@ -23,7 +23,7 @@ class QuantEstateDataObject(BaseModel):
         frozen=True,
         # Performance & looks
         cache_strings=True,
-    # Use enum raw values for easy MongoDB storage and CSV export
+        # Use enum raw values for easy MongoDB storage and CSV export
         use_enum_values=True,
     )
 

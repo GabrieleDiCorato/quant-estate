@@ -41,22 +41,14 @@ class ListingDataTransformer:
         property_type, ownership, property_class = self._parse_type_field(listing.type)
         contract_type, rent_to_own, available = self._parse_contract_field(listing.contract)
         condition: enums.PropertyCondition | None = (
-            self._parse_enumeration_field("condition", listing.condition, COND_MAP)
-            if listing.condition
-            else None
+            self._parse_enumeration_field("condition", listing.condition, COND_MAP) if listing.condition else None
         )
         surface: float = self._parse_surface(listing.surface_formatted)
         garden: enums.Garden | None = self._parse_garden(listing.garden)
         furnished: enums.FurnitureType | None = (
-            self._parse_enumeration_field("furnished", listing.furnished, FURNITURE_MAP)
-            if listing.furnished
-            else None
+            self._parse_enumeration_field("furnished", listing.furnished, FURNITURE_MAP) if listing.furnished else None
         )
-        kitchen: enums.KitchenType | None = (
-            self._parse_enumeration_field("kitchen", listing.kitchen, KITCHEN_MAP)
-            if listing.kitchen
-            else None
-        )
+        kitchen: enums.KitchenType | None = self._parse_enumeration_field("kitchen", listing.kitchen, KITCHEN_MAP) if listing.kitchen else None
         zone, address = self._parse_address(listing.address) if listing.address else (None, None)
         other_features = self._map_other_features(listing.other_amenities) if listing.other_amenities else None
 
@@ -129,9 +121,7 @@ class ListingDataTransformer:
             return []
         return [part.strip() for part in field_value.split(separator) if part.strip()]
 
-    def _parse_type_field(
-        self, type_field: str
-    ) -> tuple[enums.PropertyType, enums.OwnershipType | None, enums.PropertyClass | None]:
+    def _parse_type_field(self, type_field: str) -> tuple[enums.PropertyType, enums.OwnershipType | None, enums.PropertyClass | None]:
         """Parse the 'type' field which contains property type, ownership, and class info."""
         logger.debug("Parsing 'type' field: %s", type_field)
         parts = self._parse_composite_field(type_field, separator="|")
@@ -140,9 +130,7 @@ class ListingDataTransformer:
         if not parts or len(parts) == 0:
             raise ValueError(f"Field 'type' is empty or invalid: [{type_field}]")
 
-        property_type: enums.PropertyType | None = self._parse_enumeration_field(
-            "property_type", parts[0], TYPE_MAP
-        )
+        property_type: enums.PropertyType | None = self._parse_enumeration_field("property_type", parts[0], TYPE_MAP)
         if not property_type:
             raise ValueError(f"Unknown property type in field 'type': [{parts[0]}]")
 
@@ -151,41 +139,30 @@ class ListingDataTransformer:
         elif len(parts) == 2:
             second_part = parts[1]
             # Try to parse second part as ownership type first. The parse is not strict since it's an attempt
-            ownership_type = self._parse_enumeration_field(
-                "ownership_type", second_part, OWNERSHIP_MAP, strict=False
-            )
+            ownership_type = self._parse_enumeration_field("ownership_type", second_part, OWNERSHIP_MAP, strict=False)
 
             # If second part is not an ownership type, try as property class
             if ownership_type is not None:
                 return property_type, ownership_type, None
             else:
-                property_class = self._parse_enumeration_field(
-                    "property_class", second_part, CLASS_MAP
-                )
+                property_class = self._parse_enumeration_field("property_class", second_part, CLASS_MAP)
                 if property_class is None:
                     logger.warning("Failed to parse string [%s] as either ownership type or property class", second_part)
-                
+
                 return property_type, None, property_class
         else:
             if len(parts) > 3:
                 logger.warning("Unexpected number of parts in 'type' field: %s", parts)
 
             # Second part is always ownership type
-            ownership_type = self._parse_enumeration_field(
-                "ownership_type", parts[1], OWNERSHIP_MAP
-            )
+            ownership_type = self._parse_enumeration_field("ownership_type", parts[1], OWNERSHIP_MAP)
             # Third part is always property class
             property_class = self._parse_enumeration_field("property_class", parts[2], CLASS_MAP)
 
             return property_type, ownership_type, property_class
 
     @staticmethod
-    def _parse_enumeration_field[T: enums.BaseEnum](
-        field_name: str,
-        field_value_str: str,
-        mapping: Mapping[str, T],
-        strict=True
-    ) -> T | None:
+    def _parse_enumeration_field[T: enums.BaseEnum](field_name: str, field_value_str: str, mapping: Mapping[str, T], strict=True) -> T | None:
         """Parse a field that maps to an enumeration."""
         if not field_value_str or str(field_value_str).strip() == "":
             return None
@@ -205,9 +182,7 @@ class ListingDataTransformer:
             logger.warning("Unknown value '%s' for field '%s'", field_value_str, field_name)
         return None
 
-    def _parse_contract_field(
-        self, contract_field: str
-    ) -> tuple[enums.ContractType, bool, enums.CurrentAvailability | None]:
+    def _parse_contract_field(self, contract_field: str) -> tuple[enums.ContractType, bool, enums.CurrentAvailability | None]:
         """Parse the 'contract' field.
         This field is a pipe-separated string with various, unsorted, information.
         """
@@ -227,9 +202,7 @@ class ListingDataTransformer:
             raise ValueError(f"Unknown contract type: [{contract_field}]")
 
         is_rent_to_own_available: bool = self._is_rent_to_own_available(contract_str)
-        is_currently_available: enums.CurrentAvailability | None = self._is_currently_available(
-            contract_str
-        )
+        is_currently_available: enums.CurrentAvailability | None = self._is_currently_available(contract_str)
         return contract_type, is_rent_to_own_available, is_currently_available
 
     def _is_rent_to_own_available(self, contract_field: str) -> bool:
@@ -262,9 +235,7 @@ class ListingDataTransformer:
                 surface_value = float(num_str)
             except ValueError as err:
                 logger.warning("Could not parse numeric surface value: %s", num_str)
-                raise ValueError(
-                    f"Invalid surface format (unparseable number): {surface_formatted}"
-                ) from err
+                raise ValueError(f"Invalid surface format (unparseable number): {surface_formatted}") from err
 
             logger.debug("Parsed surface: %s -> (%.2f)", surface_formatted, surface_value)
             return surface_value
@@ -310,20 +281,14 @@ class ListingDataTransformer:
             elif "Esposizione" in amenity_value:
                 amenities_dict["sun_exposure"] = amenity_value
             elif "Impianto tv" in amenity_value:
-                amenities_dict["tv_system"] = self._parse_enumeration_field(
-                    "tv_system", amenity_value, TV_MAP
-                )
+                amenities_dict["tv_system"] = self._parse_enumeration_field("tv_system", amenity_value, TV_MAP)
             elif "Infissi esterni" in amenity_value:
-                amenities_dict["window_glass_type"], amenities_dict["window_material"] = (
-                    self._extract_window_info(amenity_value)
-                )
+                amenities_dict["window_glass_type"], amenities_dict["window_material"] = self._extract_window_info(amenity_value)
             else:
                 logger.warning("Unknown amenity value: %s", amenity_value)
         return OtherFeatures(**amenities_dict) if amenities_dict else None
 
-    def _extract_window_info(
-        self, window_str: str
-    ) -> tuple[enums.WindowGlassType | None, enums.WindowMaterial | None]:
+    def _extract_window_info(self, window_str: str) -> tuple[enums.WindowGlassType | None, enums.WindowMaterial | None]:
         """Extract window glass type and material from amenity fields."""
         if not window_str or not window_str.strip():
             return None, None
@@ -340,9 +305,7 @@ class ListingDataTransformer:
         # Extract material from second part if available
         material = None
         if len(windows_info) >= 2:
-            material = self._parse_enumeration_field(
-                "window_material", windows_info[1], WINDOW_MATERIAL_MAP
-            )
+            material = self._parse_enumeration_field("window_material", windows_info[1], WINDOW_MATERIAL_MAP)
 
         return glass_type, material
 

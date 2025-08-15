@@ -62,7 +62,7 @@ IMM_KITCHEN_MAP: Final[Mapping[str, KitchenType]] = MappingProxyType(_IMM_KITCHE
 _IMM_OWNERSHIP_MAP: dict[str, OwnershipType] = {
     "Intera proprietà": OwnershipType.FULL_OWNERSHIP,
     "Nuda proprietà": OwnershipType.BARE_OWNERSHIP,
-    "Diritto di superficie": OwnershipType.SURFACE_RIGHT
+    "Diritto di superficie": OwnershipType.SURFACE_RIGHT,
 }
 IMM_OWNERSHIP_MAP: Final[Mapping[str, OwnershipType]] = MappingProxyType(_IMM_OWNERSHIP_MAP)
 
@@ -73,9 +73,7 @@ _IMM_PROPERTY_CLASS_MAP: dict[str, PropertyClass] = {
     "Classe immobile economica": PropertyClass.ECONOMIC,
     "Immobile di lusso": PropertyClass.HIGH_END_LUXURY,
 }
-IMM_PROPERTY_CLASS_MAP: Final[Mapping[str, PropertyClass]] = MappingProxyType(
-    _IMM_PROPERTY_CLASS_MAP
-)
+IMM_PROPERTY_CLASS_MAP: Final[Mapping[str, PropertyClass]] = MappingProxyType(_IMM_PROPERTY_CLASS_MAP)
 
 # PropertyCondition
 _IMM_PROPERTY_CONDITION_MAP: dict[str, PropertyCondition] = {
@@ -84,9 +82,7 @@ _IMM_PROPERTY_CONDITION_MAP: dict[str, PropertyCondition] = {
     "Nuovo / In costruzione": PropertyCondition.NEW_UNDER_CONSTRUCTION,
     "Buono / Abitabile": PropertyCondition.GOOD_HABITABLE,
 }
-IMM_PROPERTY_CONDITION_MAP: Final[Mapping[str, PropertyCondition]] = MappingProxyType(
-    _IMM_PROPERTY_CONDITION_MAP
-)
+IMM_PROPERTY_CONDITION_MAP: Final[Mapping[str, PropertyCondition]] = MappingProxyType(_IMM_PROPERTY_CONDITION_MAP)
 
 # PropertyType
 _IMM_PROPERTY_TYPE_MAP: dict[str, PropertyType] = {
@@ -119,9 +115,7 @@ _IMM_WINDOW_MATERIAL_MAP: dict[str, WindowMaterial] = {
     "metallo": WindowMaterial.METAL,
     "PVC": WindowMaterial.PVC,
 }
-IMM_WINDOW_MATERIAL_MAP: Final[Mapping[str, WindowMaterial]] = MappingProxyType(
-    _IMM_WINDOW_MATERIAL_MAP
-)
+IMM_WINDOW_MATERIAL_MAP: Final[Mapping[str, WindowMaterial]] = MappingProxyType(_IMM_WINDOW_MATERIAL_MAP)
 
 # Identity or simple mappings for enums already in English (if needed in future)
 _IMM_CONTRACT_TYPE_MAP: dict[str, ContractType] = {
@@ -135,9 +129,7 @@ _IMM_AIR_CONDITIONING_MAP: dict[str, AirConditioningType] = {
     "autonomo": AirConditioningType.INDEPENDENT,
     "assenza": AirConditioningType.NONE,
 }
-IMM_AIR_CONDITIONING_MAP: Final[Mapping[str, AirConditioningType]] = MappingProxyType(
-    _IMM_AIR_CONDITIONING_MAP
-)
+IMM_AIR_CONDITIONING_MAP: Final[Mapping[str, AirConditioningType]] = MappingProxyType(_IMM_AIR_CONDITIONING_MAP)
 
 _IMM_HEATING_MAP: dict[str, HeatingType] = {
     "centralizzato": HeatingType.CENTRAL,
@@ -155,9 +147,7 @@ _IMM_CURRENT_AVAILABILITY_MAP: dict[str, CurrentAvailability] = {
     "disponibile": CurrentAvailability.AVAILABLE,
     "occupato": CurrentAvailability.OCCUPIED,
 }
-IMM_CURRENT_AVAILABILITY_MAP: Final[Mapping[str, CurrentAvailability]] = MappingProxyType(
-    _IMM_CURRENT_AVAILABILITY_MAP
-)
+IMM_CURRENT_AVAILABILITY_MAP: Final[Mapping[str, CurrentAvailability]] = MappingProxyType(_IMM_CURRENT_AVAILABILITY_MAP)
 
 _IMM_REGION_MAP: dict[str, RegionType] = {
     "urbano": RegionType.URBAN,

@@ -31,15 +31,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
         self.settings = settings
         if not isinstance(settings, ScraperImmobiliareListingSettings):
-            raise TypeError(
-                f"Expected ScraperImmobiliareListingSettings, got {type(settings).__name__}"
-            )
+            raise TypeError(f"Expected ScraperImmobiliareListingSettings, got {type(settings).__name__}")
 
         self.listing_id = listing_id
         if not listing_id.url.startswith(settings.url_prefix):
-            raise ValueError(
-                f"scrape_url must start with {settings.url_prefix}, got {listing_id.url}"
-            )
+            raise ValueError(f"scrape_url must start with {settings.url_prefix}, got {listing_id.url}")
         self.scrape_url = listing_id.url
 
         # Create instance-specific logger
@@ -98,15 +94,9 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Open characteristics dialog
             dialog_element = self._open_characteristics_dialog(driver)
             if dialog_element is None:
-                self.logger.error(
-                    "Failed to open characteristics dialog, skipping characteristics extraction."
-                )
-                raise ValueError(
-                    "Failed to open characteristics dialog, cannot extract property details."
-                )
-            self.logger.info(
-                "Successfully opened characteristics dialog, ready for data extraction"
-            )
+                self.logger.error("Failed to open characteristics dialog, skipping characteristics extraction.")
+                raise ValueError("Failed to open characteristics dialog, cannot extract property details.")
+            self.logger.info("Successfully opened characteristics dialog, ready for data extraction")
 
             # Extract characteristics from the dialog
             characteristics = self._extract_characteristics(dialog_element)
@@ -171,34 +161,24 @@ class ImmobiliareListingScraper(SeleniumScraper):
         """
         try:
             # Scroll to the description section
-            description_section = driver.find_element(
-                By.CSS_SELECTOR, "div[data-tracking-key='description']"
-            )
-            driver.execute_script(
-                "arguments[0].scrollIntoView({block: 'center'});", description_section
-            )
+            description_section = driver.find_element(By.CSS_SELECTOR, "div[data-tracking-key='description']")
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", description_section)
             self._realistic_wait()
 
             # Extract the description title (optional)
             title = None
             try:
-                title_elem = driver.find_element(
-                    By.CSS_SELECTOR, "p.styles_ld-descriptionHeading__title__ifRR2"
-                )
+                title_elem = driver.find_element(By.CSS_SELECTOR, "p.styles_ld-descriptionHeading__title__ifRR2")
                 title = self._normalize_text(title_elem.text)
                 self.logger.info("Extracted description title: %s", title)
             except Exception as title_e:
                 self.logger.debug("Description title not found: %s", str(title_e).split('\n')[0])
 
             # Extract the extended description (click "leggi tutto" if not necessary, the content is pre-loaded)
-            description_container = driver.find_element(
-                By.CSS_SELECTOR, "div.styles_in-readAll__04LDT div"
-            )
+            description_container = driver.find_element(By.CSS_SELECTOR, "div.styles_in-readAll__04LDT div")
             extended_description = self._normalize_text(description_container.text)
 
-            self.logger.info(
-                "Extracted extended description length: %d chars", len(extended_description)
-            )
+            self.logger.info("Extracted extended description length: %d chars", len(extended_description))
 
             return title, extended_description
 
@@ -258,9 +238,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             )
 
             # Find all badge elements
-            badge_elements = badges_container.find_elements(
-                By.CSS_SELECTOR, "li.styles_ld-featuresBadges__badge___8QgZ span.nd-badge"
-            )
+            badge_elements = badges_container.find_elements(By.CSS_SELECTOR, "li.styles_ld-featuresBadges__badge___8QgZ span.nd-badge")
 
             # Extract text from each badge
             badges = []
@@ -314,9 +292,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
             costs_section = driver.find_element(By.CSS_SELECTOR, "div[data-tracking-key='costs']")
 
             # Look for "Spese condominio" entry
-            maintenance_elements = costs_section.find_elements(
-                By.XPATH, ".//dt[contains(text(), 'Spese condominio')]/following-sibling::dd"
-            )
+            maintenance_elements = costs_section.find_elements(By.XPATH, ".//dt[contains(text(), 'Spese condominio')]/following-sibling::dd")
 
             if maintenance_elements:
                 maintenance_fee = self._normalize_text(maintenance_elements[0].text)
@@ -340,14 +316,10 @@ class ImmobiliareListingScraper(SeleniumScraper):
         """
         try:
             # Find the price information section
-            price_section = driver.find_element(
-                By.CSS_SELECTOR, "div[data-tracking-key='price-information']"
-            )
+            price_section = driver.find_element(By.CSS_SELECTOR, "div[data-tracking-key='price-information']")
 
             # Look for "Prezzo al m²" entry using XPath
-            price_per_sqm_elements = price_section.find_elements(
-                By.XPATH, ".//dt[contains(text(), 'Prezzo al m²')]/following-sibling::dd"
-            )
+            price_per_sqm_elements = price_section.find_elements(By.XPATH, ".//dt[contains(text(), 'Prezzo al m²')]/following-sibling::dd")
 
             if price_per_sqm_elements:
                 price_per_sqm = self._normalize_text(price_per_sqm_elements[0].text)
@@ -422,22 +394,16 @@ class ImmobiliareListingScraper(SeleniumScraper):
         try:
             self.logger.info("Looking for 'Vedi tutte le caratteristiche' button")
             # Find the characteristics button
-            characteristics_button = driver.find_element(
-                By.CSS_SELECTOR, "button.styles_ld-primaryFeatures__openDialogButton___8v4x"
-            )
+            characteristics_button = driver.find_element(By.CSS_SELECTOR, "button.styles_ld-primaryFeatures__openDialogButton___8v4x")
 
             # Scroll to the button to ensure it's visible
-            driver.execute_script(
-                "arguments[0].scrollIntoView({block: 'center'});", characteristics_button
-            )
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", characteristics_button)
             self._realistic_wait()
             self.logger.info("Found 'Vedi tutte le caratteristiche' button, clicking it")
 
             # Wait for the button to be clickable
             WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable(
-                    (By.CSS_SELECTOR, "button.styles_ld-primaryFeatures__openDialogButton___8v4x")
-                )
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "button.styles_ld-primaryFeatures__openDialogButton___8v4x"))
             )
 
             # Click the button using JavaScript for reliability
@@ -446,9 +412,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
             # Wait for the dialog to appear and return it
             self.logger.info("Waiting for characteristics dialog to appear...")
-            dialog_element = WebDriverWait(driver, 10).until(
-                EC.visibility_of_element_located((By.CSS_SELECTOR, "div.nd-dialogFrame__container"))
-            )
+            dialog_element = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.nd-dialogFrame__container")))
             self.logger.info("Successfully found characteristics dialog")
 
             # Small wait to ensure dialog is fully loaded
@@ -474,9 +438,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
 
         try:
             # Find all feature containers within the dialog
-            feature_elements = dialog_element.find_elements(
-                By.CSS_SELECTOR, "div.styles_ld-primaryFeaturesDialogSection__feature__Maf3F"
-            )
+            feature_elements = dialog_element.find_elements(By.CSS_SELECTOR, "div.styles_ld-primaryFeaturesDialogSection__feature__Maf3F")
             self.logger.debug("Found %d characteristic features in dialog", len(feature_elements))
 
             for feature in feature_elements:
@@ -499,9 +461,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                         characteristics[key] = value
 
                 except Exception as feature_error:
-                    self.logger.warning(
-                        "Error extracting feature: %s", str(feature_error).split('\n')[0]
-                    )
+                    self.logger.warning("Error extracting feature: %s", str(feature_error).split('\n')[0])
                     self.logger.debug("Error extracting feature", exc_info=True)
                     continue
 
@@ -573,15 +533,11 @@ class ImmobiliareListingScraper(SeleniumScraper):
             # Extract property type and contract - required fields
             property_type = characteristics.get("Tipologia")
             if not property_type:
-                raise ValueError(
-                    "Property type (Tipologia) is required but not found in characteristics"
-                )
+                raise ValueError("Property type (Tipologia) is required but not found in characteristics")
 
             contract = characteristics.get("Contratto")
             if not contract:
-                raise ValueError(
-                    "Contract type (Contratto) is required but not found in characteristics"
-                )
+                raise ValueError("Contract type (Contratto) is required but not found in characteristics")
 
             # Build the ListingDetails object using class constructor
             return ListingDetails(
@@ -739,9 +695,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 # Create simplified formatted string by replacing "m²" with "sqm"
                 formatted_surface = surface_str.replace("m²", "sqm")
 
-                self.logger.debug(
-                    "Parsed surface: %s -> %s (%.2f)", surface_str, formatted_surface, surface_value
-                )
+                self.logger.debug("Parsed surface: %s -> %s (%.2f)", surface_str, formatted_surface, surface_value)
                 return formatted_surface, surface_value
             else:
                 self.logger.warning("Could not extract number from surface: %s", surface_str)
@@ -769,9 +723,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
         try:
             # Check that the string ends with " €/m²"
             if not price_sqm_str.strip().endswith("€/m²"):
-                self.logger.warning(
-                    "Price per sqm string does not end with ' €/m²': %s", price_sqm_str
-                )
+                self.logger.warning("Price per sqm string does not end with ' €/m²': %s", price_sqm_str)
                 return None, None
 
             # Extract number from string like "3.558 €/m²" or "3.558,50 €/m²"
@@ -793,9 +745,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 )
                 return formatted_price, price_value
             else:
-                self.logger.warning(
-                    "Could not extract number from price per sqm: %s", price_sqm_str
-                )
+                self.logger.warning("Could not extract number from price per sqm: %s", price_sqm_str)
                 return None, None
 
         except (ValueError, AttributeError) as e:

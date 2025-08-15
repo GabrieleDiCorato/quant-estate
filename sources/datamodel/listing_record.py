@@ -1,6 +1,7 @@
 """
 Normalized listing record suitable for analytics and storage.
 """
+
 from datetime import datetime
 
 from pydantic import Field
@@ -35,7 +36,7 @@ class OtherFeatures(QuantEstateDataObject):
 
 class ListingRecord(QuantEstateDataObject):
     """Normalized property record derived from ListingDetails (cleaned types)."""
-    
+
     # Core identifier
     id: str = Field(..., description="Unique QuantEstate identifier for the property listing")
     source: str = Field(..., description="Source of the listing data (e.g., IMMOBILIARE)")
@@ -43,8 +44,7 @@ class ListingRecord(QuantEstateDataObject):
     url: str = Field(..., description="URL of the property listing")
     # Timestamps
     fetch_date: datetime = Field(
-        default_factory=QuantEstateDataObject.get_timestamp,
-        description="Timestamp of the last fetch of the listing details"
+        default_factory=QuantEstateDataObject.get_timestamp, description="Timestamp of the last fetch of the listing details"
     )
     last_updated: datetime | None = Field(None, description="Timestamp of the last update to the listing on the website (if provided)")
     etl_date: datetime = Field(default_factory=QuantEstateDataObject.get_timestamp, description="Creation timestamp of the record in the database")
@@ -57,23 +57,15 @@ class ListingRecord(QuantEstateDataObject):
 
     # Property classification
     # From "type":
-    property_type: enums.PropertyType = Field(
-        ..., description="Specific property type (e.g., apartment, villa, etc.)"
-    )
+    property_type: enums.PropertyType = Field(..., description="Specific property type (e.g., apartment, villa, etc.)")
     ownership_type: enums.OwnershipType | None = Field(None, description="Type of ownership rights")
     property_class: enums.PropertyClass | None = Field(None, description="Property class based on quality and market positioning")
     # From "contract":
-    contract_type: enums.ContractType = Field(
-        ..., description="Type of contract (sale, rent, etc.)"
-    )
-    is_rent_to_own_available: bool = Field(False, description="Whether the property is available for rent-to-own") 
-    current_availability: enums.CurrentAvailability | None = Field(
-        None, description="Current availability status of the property"
-    )
+    contract_type: enums.ContractType = Field(..., description="Type of contract (sale, rent, etc.)")
+    is_rent_to_own_available: bool = Field(False, description="Whether the property is available for rent-to-own")
+    current_availability: enums.CurrentAvailability | None = Field(None, description="Current availability status of the property")
     # From "condition":
-    condition: enums.PropertyCondition | None = Field(
-        None, description="Property condition"
-    )
+    condition: enums.PropertyCondition | None = Field(None, description="Property condition")
     is_luxury: bool | None = Field(None, description="Whether this is a luxury property")
 
     # Property details
@@ -94,14 +86,10 @@ class ListingRecord(QuantEstateDataObject):
         None,
         description="Whether property has a garden, and its type (private, shared, etc.)",
     )
-    has_cellar: bool | None = Field(None, description="Whether property has a cellar") # "Cantina"
+    has_cellar: bool | None = Field(None, description="Whether property has a cellar")  # "Cantina"
     has_basement: bool | None = Field(None, description="Whether property has a basement")
-    furnished: enums.FurnitureType | None = Field(
-        None, description="Whether property is furnished"
-    )
-    kitchen: enums.KitchenType | None = Field(
-        None, description="Type of kitchen (open, closed, etc.)"
-    )
+    furnished: enums.FurnitureType | None = Field(None, description="Whether property is furnished")
+    kitchen: enums.KitchenType | None = Field(None, description="Type of kitchen (open, closed, etc.)")
 
     # Building Info
     build_year: int | None = Field(None, description="Year the building was constructed", ge=1800, le=2100)
@@ -111,9 +99,7 @@ class ListingRecord(QuantEstateDataObject):
     # Energy and utilities
     heating_type: str | None = Field(None, description="Type of heating system")
     air_conditioning: str | None = Field(None, description="Air conditioning type")
-    energy_class: enums.EnergyClass | None = Field(
-        None, description="Energy efficiency class"
-    )
+    energy_class: enums.EnergyClass | None = Field(None, description="Energy efficiency class")
 
     # Location
     country: str = Field(..., description="Country code")
@@ -141,4 +127,4 @@ class ListingRecord(QuantEstateDataObject):
 
     def to_dict(self) -> dict:
         """Convert to a plain dictionary with field values."""
-        return self.model_dump() 
+        return self.model_dump()

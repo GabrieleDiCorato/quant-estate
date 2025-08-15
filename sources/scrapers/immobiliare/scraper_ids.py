@@ -114,18 +114,14 @@ class ImmobiliareIdScraper(SeleniumScraper):
                 self._realistic_wait()
 
                 # Find all listing content containers
-                content_elements: list[WebElement] = driver.find_elements(
-                    By.CSS_SELECTOR, "div.styles_in-listingCardPropertyContent__tfu8w"
-                )
+                content_elements: list[WebElement] = driver.find_elements(By.CSS_SELECTOR, "div.styles_in-listingCardPropertyContent__tfu8w")
                 self.logger.info("Found %d listings", len(content_elements))
 
                 listings = []
                 for _i, content_element in enumerate(content_elements):
                     try:
                         # Find the link within the content container
-                        link_element = content_element.find_element(
-                            By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']"
-                        )
+                        link_element = content_element.find_element(By.CSS_SELECTOR, "a[href*='immobiliare.it/annunci']")
                         link = link_element.get_attribute("href")
                         if not link:
                             self.logger.warning("Listing without link found, skipping")
@@ -145,13 +141,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
                             self.logger.warning("Skipping auction listing [%s]", link)
                             continue
 
-                        id = ListingId(
-                            source=SOURCE, 
-                            source_id=source_id, 
-                            title=title, 
-                            url=link,
-                            fetch_date= datetime.now(tz=ZoneInfo("Europe/Rome"))
-                            )
+                        id = ListingId(source=SOURCE, source_id=source_id, title=title, url=link, fetch_date=datetime.now(tz=ZoneInfo("Europe/Rome")))
                         listings.append(id)
 
                     except Exception as e:
@@ -178,14 +168,9 @@ class ImmobiliareIdScraper(SeleniumScraper):
                     )
                     break
                 if page_n >= end_page_n:
-                    self.logger.info(
-                        "Reached the maximum number of [%d] pages, stopping", end_page_n
-                    )
+                    self.logger.info("Reached the maximum number of [%d] pages, stopping", end_page_n)
                     break
-                if (
-                    total_listings == 0
-                    or total_inserted / total_listings < self.settings.min_success_rate
-                ):
+                if total_listings == 0 or total_inserted / total_listings < self.settings.min_success_rate:
                     self.logger.error("Success rate below minimum threshold, stopping")
                     break
 
@@ -200,9 +185,7 @@ class ImmobiliareIdScraper(SeleniumScraper):
 
                 next_page_n = self._get_current_page_number(driver)
                 if next_page_n == page_n:
-                    self.logger.error(
-                        "No change in page number, we are still at [%d], stopping.", page_n
-                    )
+                    self.logger.error("No change in page number, we are still at [%d], stopping.", page_n)
                     break
                 page_n = next_page_n
 

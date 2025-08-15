@@ -103,9 +103,7 @@ class SeleniumScraper(ABC):
             return driver
 
         except Exception as e:
-            self.logger.error(
-                "Failed to create undetected Chrome WebDriver: %s", str(e), exc_info=True
-            )
+            self.logger.error("Failed to create undetected Chrome WebDriver: %s", str(e), exc_info=True)
             raise ScrapingError(f"Failed to create WebDriver: {e}") from e
 
     @contextmanager
@@ -136,9 +134,7 @@ class SeleniumScraper(ABC):
         self._realistic_wait()
         self.logger.info("Session is warmed up!")
 
-    def get_page(
-        self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None
-    ) -> None:
+    def get_page(self, driver: uc.Chrome, url: str, wait_for_element: tuple[str, str] | None = None) -> None:
         """Navigate to a page and optionally wait for an element.
 
         Args:
@@ -157,9 +153,7 @@ class SeleniumScraper(ABC):
             if wait_for_element:
                 by_str, locator = wait_for_element
                 by = getattr(By, by_str.upper())
-                WebDriverWait(driver, self.settings.implicit_wait).until(
-                    EC.presence_of_element_located((by, locator))
-                )
+                WebDriverWait(driver, self.settings.implicit_wait).until(EC.presence_of_element_located((by, locator)))
                 self.logger.debug("Successfully waited for element: %s", locator)
 
         except TimeoutException as e:
@@ -218,9 +212,7 @@ class SeleniumScraper(ABC):
         try:
             self.logger.info("Attempting to close cookies banner...")
             # Wait for the specific Didomi cookies button to be present and clickable
-            accept_btn = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button"))
-            )
+            accept_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "didomi-notice-agree-button")))
             accept_btn.click()
             self.logger.info("Successfully clicked cookies accept button")
         except TimeoutException:
@@ -233,9 +225,7 @@ class SeleniumScraper(ABC):
         try:
             self.logger.info("Waiting to close login popup...")
             # Wait for the login popup to appear
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "div.ab-in-app-message.ab-modal"))
-            )
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.ab-in-app-message.ab-modal")))
             # Find and click the close button
             self.logger.info("Attempting to close login popup...")
             close_button = driver.find_element(By.CSS_SELECTOR, "button.ab-close-button")
@@ -257,9 +247,7 @@ class SeleniumScraper(ABC):
                 safe_y = random.randint(int(viewport_height * 0.3), int(viewport_height * 0.7))
 
                 driver.execute_script(f"document.elementFromPoint({safe_x}, {safe_y}).click();")
-                self.logger.debug(
-                    "Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y
-                )
+                self.logger.debug("Clicked on safe location (%d, %d) to dismiss overlays", safe_x, safe_y)
             except Exception as click_error:
                 self.logger.error("Could not click on safe location: %s", str(click_error))
 
