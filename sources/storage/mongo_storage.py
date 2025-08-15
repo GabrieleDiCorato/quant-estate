@@ -1,5 +1,5 @@
 """
-Storage implementations for immobiliare.it data.
+MongoDB storage implementation for QuantEstate domain objects.
 """
 
 import logging

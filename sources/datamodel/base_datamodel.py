@@ -1,5 +1,5 @@
 """
-Basic data model configuration for our real estate application.
+Base data model configuration and utilities shared across domain objects.
 """
 
 from datetime import datetime
@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class QuantEstateDataObject(BaseModel):
-    """Base class for all data objects in the QuantEstate application."""
+    """Base class for all typed data objects in QuantEstate (Pydantic v2)."""
 
     # Configuration: immutable, no extra fields, and performance optimizations
     model_config = ConfigDict(
@@ -23,11 +23,11 @@ class QuantEstateDataObject(BaseModel):
         frozen=True,
         # Performance & looks
         cache_strings=True,
-        # Fundamental for mongo compatibility
+    # Use enum raw values for easy MongoDB storage and CSV export
         use_enum_values=True,
     )
 
     @classmethod
     def get_timestamp(cls) -> datetime:
-        """Get the current timestamp in the Europe/Rome timezone."""
+        """Current timestamp in Europe/Rome timezone (naive-safe dt)."""
         return datetime.now(tz=ZoneInfo("Europe/Rome"))

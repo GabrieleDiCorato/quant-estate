@@ -1,99 +1,110 @@
-# 🏡 QUANT ESTATE - HOUSING MARKET ANALYSIS
+# QUANT ESTATE - HOUSING MARKET ANALYSIS
 
-Your quantitative real estate agent.
-
----
-
-## 📦 Project Features
-
-Our flexible architecture allows the aggregation and analysis of a vast range of data pertaining the real estate business.
-The core logics focus on selecting the best investment opportunities and evaluate fair prices.
-
-We offer:
-- Web scraping of italian real estate listings with detailed attributes;
-- 
-
-Our application is cleanly organized and easily extendable to extract best value from data and real estate.
+Your quantitative real estate toolkit.
 
 ---
 
-## 🚀 Getting Started
+## Project Features
+
+The architecture aggregates and analyzes real estate data with a focus on identifying opportunities and fair pricing.
+
+- Selenium-based scrapers for Italian listings (Immobiliare.it) with detailed attributes
+- Typed data models with Pydantic v2 (ListingId, ListingDetails, ListingRecord)
+- Pluggable storage: MongoDB or CSV via a common Storage interface
+- Environment-scoped configuration via .env files
+- Dependency and build management with uv
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12+
+- uv (package and environment manager)
 
-We use [uv](https://github.com/astral-sh/uv) for dependency management and to build the project. If you want to contribute, please follow the setup instructions.
+We use uv for dependency management and builds. See the uv installation guide: https://docs.astral.sh/uv/getting-started/installation/
 
-### 🔧 Installing `uv`
+Optional VS Code extension: UV Wingman — https://marketplace.visualstudio.com/items?itemName=DJSaunders1997.uv-wingman
 
-See the [official documentation](https://docs.astral.sh/uv/getting-started/installation/) to install uv on your machine. There is a very clear [documentation](https://docs.astral.sh/uv/) available.
+### Setup (Windows PowerShell)
 
-IDE extension are also available, like [UV Wingman](https://marketplace.visualstudio.com/items?itemName=DJSaunders1997.uv-wingman) for Visual Studio Code. 
+1) Install dependencies (includes dev tools like ipykernel):
 
-
-### 📁 Setting Up the Environment
-
-See [Working on Projects](https://docs.astral.sh/uv/guides/projects/#uvlock) to understand how to work uv project.
-
-To complete your setup:
-
-1. Install all dependencies declared by the project: `uv sync --all-groups`
-2. With the previous step, you also installed [nb-clean](https://github.com/srstevenson/nb-clean), a utility to cleanup jupyther notebooks. To simplify collaborating on notebooks, they should be cleaned up before being committed into the project.\
-You can setup git to automatically use a cleaned-up version of your notebook when you stage it. Open your `tmp/.git/config` file and append the following:
-```bash
-[filter "nb-clean"]
-	clean = nb-clean clean --remove-empty-cells --remove-all-notebook-metadata
+```powershell
+uv sync --all-groups
 ```
 
-### 📓 Running Jupyter Notebooks
+2) Ensure a Python 3.12 runtime is available (only if missing):
 
-Read the [documentation](https://docs.astral.sh/uv/guides/integration/jupyter/).
+```powershell
+uv python install 3.12
+```
 
-If you are using the command line, just run:
+3) Configure runtime environment (optional, defaults shown):
 
-```bash
+```powershell
+$env:QE_ENV = "dev"; $env:QE_CONF_FOLDER = "sources/resources"
+```
+
+Expected config files (by environment):
+- sources/resources/storage.dev.env
+- sources/resources/scraper_imm_id.dev.env
+- sources/resources/scraper_imm_listing.dev.env
+
+---
+
+## Running Jupyter Notebooks
+
+From a terminal:
+
+```powershell
 uv run --with jupyter jupyter lab
 ```
 
-If you are using Visual Studio Code, carefully read [Using Jupyter From VS Code](https://docs.astral.sh/uv/guides/integration/jupyter/#using-jupyter-from-vs-code).
+In VS Code:
+- Open a notebook in the `notebooks/` folder
+- Select a Python kernel backed by the uv environment created by `uv sync`
 
-### 📦 Building the Project
+Notebook hygiene (optional): clean before committing to reduce diffs.
 
-To build the project and create a distribution package:
+```powershell
+uv run nb-clean clean --remove-empty-cells --remove-all-notebook-metadata path\to\notebook.ipynb
+```
 
-```bash
+See uv + Jupyter docs: https://docs.astral.sh/uv/guides/integration/jupyter/
+
+---
+
+## Build
+
+Build a distribution:
+
+```powershell
 uv build
 ```
 
-This will create a distribution archive in the `dist` directory that can be installed using pip or uv:
+Install the produced archive from `dist/` using pip or uv:
 
-```bash
-# Using pip
+```powershell
 pip install dist/quant_estate-0.1.0.tar.gz
+```
 
-# Using uv
+```powershell
 uv pip install dist/quant_estate-0.1.0.tar.gz
 ```
 
 ---
 
-## ⚙️ Usage
+## Notes
 
-
-
----
-
-## 📝 Notes
-
-* Avoid scraping too aggressively. Add realistic delays.
-* Consider rotating headers or proxies if you're blocked.
-* Always check the site's `robots.txt` for ethical scraping compliance.
+- Respect target sites: add realistic delays and avoid aggressive scraping
+- Rotate user agents if blocked and check robots.txt
 
 ---
 
-## 📄 License
+## License
 
-BSL 1.1 License. See `LICENSE` file for details.
+BSL 1.1 License. See `LICENSE` for details.
 
 ---

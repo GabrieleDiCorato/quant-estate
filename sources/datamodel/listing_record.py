@@ -1,5 +1,5 @@
 """
-Data model for real estate properties.
+Normalized listing record suitable for analytics and storage.
 """
 from datetime import datetime
 
@@ -10,7 +10,7 @@ from .base_datamodel import QuantEstateDataObject
 
 
 class OtherFeatures(QuantEstateDataObject):
-    """Data model for additional features of a property listing. Directly derived from the "other_features" field in ListingDetails."""
+    """Additional features mapped from badges/amenities (source-specific)."""
 
     has_built_in_wardrobe: bool | None = Field(None, description="Whether property has built-in wardrobe (Armadio a muro)")
     has_fireplace: bool | None = Field(None, description="Whether property has a fireplace (Caminetto)")
@@ -34,7 +34,7 @@ class OtherFeatures(QuantEstateDataObject):
 
 
 class ListingRecord(QuantEstateDataObject):
-    """Data model for a real estate property. The normalized and cleaned version of ListingDetails."""
+    """Normalized property record derived from ListingDetails (cleaned types)."""
     
     # Core identifier
     id: str = Field(..., description="Unique QuantEstate identifier for the property listing")
@@ -119,27 +119,26 @@ class ListingRecord(QuantEstateDataObject):
     country: str = Field(..., description="Country code")
     city: str = Field(..., description="City name")
     zone: str | None = Field(None, description="City zone or neighborhood")
-    address: str | None = Field(None, description="Row address of the property")
+    address: str | None = Field(None, description="Raw address or location string")
 
     # Parking
     parking_info: str | None = Field(None, description="Parking information (garage, street parking, etc.)")
 
-    # Extendend description
+    # Extended description
     description_title: str | None = Field(None, description="Title in the property description")
     description: str = Field(..., description="Property description")
 
     # From "other_amenities":
-    other_features: OtherFeatures | None = Field(None, description="Additional features of the property")
+    other_features: OtherFeatures | None = Field(None, description="Additional features derived from badges/amenities")
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingRecord":
-        """Create a RealEstate instance from a dictionary."""
-        # This is a more efficient way to validate and create the model using Pydantic.
-        # This method will automatically validate the data and convert it
-        # to the appropriate types as defined in the model.
-        # If the model changes, this will ensure that the data is still valid.
-        return ListingRecord.model_validate(data)
+        """
+        Create a ListingRecord instance from a dictionary.
+        This is idempotent and validates/converts values to model-defined types.
+        """
+        return cls.model_validate(data)
 
     def to_dict(self) -> dict:
-        """Convert the RealEstate instance to a dictionary."""
+        """Convert to a plain dictionary with field values."""
         return self.model_dump() 

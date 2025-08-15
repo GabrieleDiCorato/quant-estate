@@ -18,9 +18,7 @@ from sources.storage.abstract_storage import Storage
 
 
 class ImmobiliareListingScraper(SeleniumScraper):
-    """Scraper for Immobiliare.it using Selenium. 
-    Given the URL for a specific listing, it extracts all relevant details.
-    """
+    """Extract detailed attributes from a single Immobiliare.it listing URL."""
 
     def __init__(
         self,
@@ -640,7 +638,7 @@ class ImmobiliareListingScraper(SeleniumScraper):
                 # Extended description - required fields
                 description_title=description_title,
                 description=extended_description,
-                other_features=feature_badges if feature_badges else None,
+                other_amenities=feature_badges if feature_badges else None,
             )
 
         except Exception as e:

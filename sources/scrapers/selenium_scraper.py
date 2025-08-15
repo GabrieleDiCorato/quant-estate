@@ -1,5 +1,5 @@
 """
-Selenium-based web scraper base class using undetected-chromedriver.
+Abstract Selenium scraper powered by undetected-chromedriver with human-like pacing.
 """
 
 import itertools

@@ -1,5 +1,5 @@
 """
-Base exceptions for the connectors package.
+Project-wide exception hierarchy used by scrapers and storage layers.
 """
 
 
@@ -35,7 +35,7 @@ class ValidationError(ConnectorError):
 
 # Connector-specific exceptions
 class ImmobiliareError(ConnectorError):
-    """Base exception for all immobiliare-related errors."""
+    """Base exception for Immobiliare.it specific errors."""
 
     pass
 

@@ -1,5 +1,5 @@
 """
-Data model for real estate properties.
+Raw listing details as scraped from source websites (pre-normalization).
 """
 
 from datetime import datetime
@@ -103,7 +103,7 @@ class ListingDetails(QuantEstateDataObject):
 
     @classmethod
     def from_dict(cls, data: dict) -> "ListingDetails":
-        """Create a RealEstate instance from a dictionary."""
+        """Create a ListingDetails instance from a dict (idempotent)."""
         # This is a more efficient way to validate and create the model using Pydantic.
         # This method will automatically validate the data and convert it
         # to the appropriate types as defined in the model.
@@ -112,5 +112,5 @@ class ListingDetails(QuantEstateDataObject):
         return ListingDetails.model_validate(data)
 
     def to_dict(self) -> dict:
-        """Convert the RealEstate instance to a dictionary."""
+        """Convert to a plain dictionary with field values."""
         return self.model_dump()
