@@ -43,8 +43,6 @@ _IMM_GARDEN_MAP: dict[str, Garden] = {
     "Giardino privato": Garden.PRIVATE,
     "Giardino comune": Garden.SHARED,
     "Nessun giardino": Garden.NONE,
-    # TODO remove
-    "FALSE": Garden.NONE,  # backward compatibility
 }
 IMM_GARDEN_MAP: Final[Mapping[str, Garden]] = MappingProxyType(_IMM_GARDEN_MAP)
 

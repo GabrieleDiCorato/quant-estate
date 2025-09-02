@@ -4,7 +4,7 @@ Project-wide exception hierarchy used by scrapers and storage layers.
 
 
 class ConnectorError(Exception):
-    """Base exception for all connector-related errors."""
+    """Base exception for all scraper and storage related errors."""
 
     pass
 
@@ -33,7 +33,7 @@ class ValidationError(ConnectorError):
     pass
 
 
-# Connector-specific exceptions
+# Source-specific exceptions
 class ImmobiliareError(ConnectorError):
     """Base exception for Immobiliare.it specific errors."""
 

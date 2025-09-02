@@ -1,5 +1,5 @@
 """
-Web scrapers for the quant-estate project.
+Undetected Chrome-based web scrapers for the quant-estate project.
 """
 
 from .immobiliare.scraper_ids import ImmobiliareIdScraper

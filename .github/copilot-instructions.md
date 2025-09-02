@@ -4,7 +4,7 @@
 Real estate data scraping and analysis application using Python 3.12:
 - **Architecture**: Direct scrapers with storage layer (no connector abstraction)
 - **Database**: MongoDB via pymongo or CSV files 
-- **Key Libraries**: pydantic v2, selenium, webdriver-manager
+- **Key Libraries**: pydantic v2, undetected-chromedriver, pymongo
 - **Package Manager**: uv
 - **Environment**: Windows PowerShell
 
@@ -60,7 +60,7 @@ sources/
 - **Structure**: `StorageSettings`, `ScraperSettings` subclasses
 
 #### Scrapers (`sources/scrapers/`)
-- **Base**: `SeleniumScraper` with WebDriver management
+- **Base**: `SeleniumScraper` with undetected Chrome WebDriver management
 - **Implementation**: `ImmobiliareIdScraper`, `ImmobiliareListingScraper`
 - **Features**: Request delays, headless mode, window sizing
 

@@ -8,7 +8,7 @@ Your quantitative real estate toolkit.
 
 The architecture aggregates and analyzes real estate data with a focus on identifying opportunities and fair pricing.
 
-- Selenium-based scrapers for Italian listings (Immobiliare.it) with detailed attributes
+- Undetected Chrome-based scrapers for Italian listings (Immobiliare.it) with detailed attributes
 - Typed data models with Pydantic v2 (ListingId, ListingDetails, ListingRecord)
 - Pluggable storage: MongoDB or CSV via a common Storage interface
 - Environment-scoped configuration via .env files with Pydantic settings
@@ -143,6 +143,6 @@ This software is provided for **educational and research purposes only**. By usi
 
 ## License
 
-BSL-1.0 License. See `LICENSE` for details.
+BSL-1.1 License. See `LICENSE` for details.
 
 ---

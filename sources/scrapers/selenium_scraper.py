@@ -1,5 +1,5 @@
 """
-Abstract Selenium scraper powered by undetected-chromedriver with human-like pacing.
+Abstract undetected Chrome scraper with human-like pacing and anti-detection features.
 """
 
 import itertools
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class SeleniumScraper(ABC):
-    """Abstract base class for Selenium-based web scrapers."""
+    """Abstract base class for undetected Chrome-based web scrapers."""
 
     # Thread-safe atomic counter (to identify instances)
     _instance_counter = itertools.count(1)
@@ -124,11 +124,10 @@ class SeleniumScraper(ABC):
                 self.logger.warning("Error closing WebDriver: %s", str(e))
 
     def warmup_driver(self, driver, base_url: str):
+        """Initialize browser session by visiting homepage and handling cookies."""
         # Visit the homepage to get cookies
         self.logger.info("Visiting homepage to initialize session...")
         self.get_page(driver, base_url)
-        # Wait for the manual captcha solving or any initial loading
-        # time.sleep(random.uniform(5, 10))
         # Wait for cookies to load and close them
         self._close_cookies(driver)
         self._realistic_wait()

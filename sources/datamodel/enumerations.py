@@ -1,6 +1,6 @@
 """
 File containing all simple enumerations used in the project.
-Common to all connectors and data models.
+Common to all scrapers and data models.
 """
 
 from enum import Enum

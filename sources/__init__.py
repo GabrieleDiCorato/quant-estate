@@ -2,7 +2,7 @@
 Quant Estate - Real estate data collection and analysis toolkit
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from .config import ConfigManager
 from .config.model import CsvStorageSettings, MongoStorageSettings, StorageSettings, StorageType
