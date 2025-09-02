@@ -4,7 +4,7 @@
 This is a real estate data management application written in Python 3.12 using:
 - **Database**: MongoDB for data storage
 - **Architecture**: Connector composed of a Scraper and a Storage layer
-- **Key Libraries**: pymongo, requests, BeautifulSoup, pydantic v2
+- **Key Libraries**: pymongo, selenium, pydantic v2
 - **Package Manager**: uv (modern Python dependency management)
 - **Configuration**: YAML defaults
 
