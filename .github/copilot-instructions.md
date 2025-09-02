@@ -1,155 +1,92 @@
 # Copilot Instructions
 
 ## Project Context
-This is a real estate data management application written in Python 3.12 using:
-- **Database**: MongoDB for data storage
-- **Architecture**: Connector composed of a Scraper and a Storage layer
-- **Key Libraries**: pymongo, selenium, pydantic v2
-- **Package Manager**: uv (modern Python dependency management)
-- **Configuration**: YAML defaults
+Real estate data scraping and analysis application using Python 3.12:
+- **Architecture**: Direct scrapers with storage layer (no connector abstraction)
+- **Database**: MongoDB via pymongo or CSV files 
+- **Key Libraries**: pydantic v2, selenium, webdriver-manager
+- **Package Manager**: uv
+- **Environment**: Windows PowerShell
 
 ## Communication Style
-- Provide direct, factual responses without unnecessary apologies or agreements
+- Direct, factual responses without apologies or excitement
 - Focus on practical solutions over explanations
-- When I say you're wrong, evaluate the claim objectively and respond with facts
-- Avoid emojis, exclamation marks, and hyperbolic language
+- Ask for clarifications before complex tasks
+- Validate prompts and suggest improvements
 
-## Task Approach
-- **Always suggest the most efficient and modern approach** for any task
-- **Ask for clarifications** before starting complex tasks
-- **Break down complex requests** into smaller steps and confirm each step
-- **Validate my prompts** and help me write more effective ones
-- **Ask before writing tests** unless explicitly requested
-- When writing tests, ask for framework preference (pytest/unittest) and test type (unit/integration)
+## Task Boundaries
+- **Complete only the requested task**
+- **Ask before expanding scope** or making improvements
+- **Don't refactor unless explicitly asked**
+- **Mention related issues but don't fix them**
 
-## Scope and Boundaries
-- **Stay within the explicit scope** of each request
-- **Don't make improvements** outside the requested changes
-- **Ask before expanding scope** - even for "obvious" improvements
-- **Stop when the specific task is complete** - don't continue with related tasks
-- **If you encounter errors that prevent completion**, explain what can/cannot be done
+## Python Standards
 
-## Code Changes
-- **Complete the specific task requested, nothing more**
-- **Don't refactor code unless explicitly asked**
-- **If you see related issues, mention them but don't fix them**
-- **Ask before making any changes outside the stated scope**
+### Code Style (Ruff enforced)
+- Python 3.12+ features, f-strings, modern type hints
+- `snake_case` for variables/functions, `CamelCase` for classes
+- Module-level loggers: `logger = logging.getLogger(__name__)`
+- Line length: 150 characters
+- Remove unused imports when editing files
 
+### Type Hints
+- Always use type hints for functions
+- Use modern built-ins: `list`, `dict`, `set` (not `List`, `Dict`, `Set`)
+- Avoid `Any` - use specific types
 
-## Python Coding Standards
+## Architecture
 
-### Core Principles
-- **Pythonic code**: Write clean, efficient, maintainable code following Python idioms
-- **Modern Python**: Use Python 3.12+ features and latest library versions
-- **PEP 8 compliance**: Follow official Python style guidelines
-- **Minimal scope changes**: When modifying files, only change what's necessary and remove unused imports
-- **Priority hierarchy**: Correctness > Maintainability > Performance
-
-### Code Style
-- Use `f-strings` for string formatting
-- Use `snake_case` for variables and functions
-- Use `CamelCase` for class names
-- Use `UPPER_CASE` for constants
-- Use `logging` module instead of print statements
-- Use module-level loggers: `logger = logging.getLogger(__name__)`
-
-### Type Hints and Annotations
-- **Always use type hints** for function parameters and return types
-- **Use modern type hints**: `list`, `dict`, `set` instead of `List`, `Dict`, `Set`
-- **Avoid `Any` and `Union` types**: Use specific types or Union types when needed
-- **Help me understand and use** complex type annotations when they arise
-
-### Documentation
-- Include concise docstrings for classes and functions
-- Add inline comments only when code intent isn't clear
-- Avoid emojis and exclamation marks in all code and comments
-- Comments start with a capital letter and do not end with a period
-
-## Terminal Usage
-- Prefer PowerShell syntax (Windows environment)
-- Use `uv` for Python package management: `uv add package_name`
-- MongoDB operations through Python code, not CLI commands
-
-## Architecture Overview
-
-### 3-Tier Connector Pattern
-The application follows a clean 3-tier architecture:
-
-1. **Connector Layer** (`sources/connectors/base_connector.py`)
-   - Orchestrates the entire data pipeline
-   - Manages configuration and coordinates scraper/storage operations
-   - Handles high-level workflow logic
-
-2. **Scraper Layer** (`sources/connectors/base_scraper.py`)
-   - Implements data extraction logic for specific sources
-   - Handles HTTP requests, parsing, and data validation
-   - Converts raw data to structured `ListingDetails` objects
-
-3. **Storage Layer** (`sources/connectors/base_storage.py`)
-   - Manages data persistence operations
-   - Handles MongoDB connections and CRUD operations
-   - Implements data deduplication and validation
-
-### Data Flow
+### Current Structure
 ```
-URL → Connector → Scraper → ListingDetails → Storage → MongoDB
+sources/
+├── config/           # Pydantic settings with env file support
+├── datamodel/        # Pydantic v2 models (frozen=True)
+├── scrapers/         # Selenium-based scrapers
+├── storage/          # MongoDB/CSV storage implementations
+├── mappers/          # Data transformation utilities
+└── logging/          # Logging configuration
 ```
 
 ### Key Components
 
 #### Data Models (`sources/datamodel/`)
-- **Base**: `QuantEstateDataObject` with Pydantic v2 configuration
-- **Core**: `ListingDetails` - comprehensive real estate property model
-- **Enumerations**: Type-safe enums for property types, contracts, conditions
-- **Identifiers**: `ListingId` for unique property identification
+- **Base**: `QuantEstateDataObject` (Pydantic v2, frozen, enum values)
+- **Core**: `ListingDetails`, `ListingId`, `ListingRecord`
+- **Enums**: Type-safe property types, conditions, etc.
 
-#### Configuration System (`sources/config/`)
-- **Modern Pydantic**: Type-safe configuration with validation
-- **Dual Sources**: YAML defaults
+#### Configuration (`sources/config/`)
+- **Manager**: `ConfigManager` with LRU caching
+- **Settings**: Environment-based Pydantic settings
+- **Structure**: `StorageSettings`, `ScraperSettings` subclasses
 
-#### Current Implementations
-- **Immobiliare.it**: Complete scraper with JSON extraction from `__NEXT_DATA__`
-- **MongoDB Storage**: Full CRUD operations with connection pooling
-- **Request Handling**: Configurable delays and user agent rotation
+#### Scrapers (`sources/scrapers/`)
+- **Base**: `SeleniumScraper` with WebDriver management
+- **Implementation**: `ImmobiliareIdScraper`, `ImmobiliareListingScraper`
+- **Features**: Request delays, headless mode, window sizing
 
-### Exception Hierarchy
-- `ConnectorError` → `ScrapingError`, `StorageError`, `ConfigurationError`
-- Source-specific: `ImmobiliareError` with validation extensions
-- Comprehensive error handling throughout the pipeline
+#### Storage (`sources/storage/`)
+- **Interface**: `Storage.create_storage()` factory
+- **Types**: `FileStorage` (CSV), `MongoDBStorage`
+- **Collections**: `{source}_{type}` naming (e.g., `immobiliare_listings`)
 
-## Project-Specific Conventions
+### Exception Handling
+- Custom hierarchy: `ConnectorError` → `ScrapingError`, `StorageError`, `ConfigurationError`
+- Source-specific exceptions for validation errors
 
-### Configuration Management
-- **Primary**: Use `sources/config/pydantic_config_manager.py` for all configuration
-- **Models**: Configuration classes in `sources/config/settings.py`
-- **YAML Structure**: Maintain hierarchical structure in default config files
+## Project Conventions
 
-### Data Model Design
-- **Inheritance**: All models inherit from `QuantEstateDataObject`
-- **Validation**: Use Pydantic v2 field validation with descriptive error messages
-- **Enums**: Create type-safe enums in `enumerations.py` with `BaseEnum` inheritance
-- **Immutability**: Data models are frozen by default (`frozen=True`)
+### Configuration
+- Use `ConfigManager` for all settings
+- Environment files in `sources/resources/`
+- Pydantic validation with descriptive errors
 
-### Connector Implementation
-- **Base Classes**: Always inherit from `AbstractConnector`, `AbstractScraper`, `AbstractStorage`
-- **Error Handling**: Use specific exception types from `sources/exceptions.py`
-- **Logging**: Module-level loggers with structured logging
-- **Configuration**: Source-specific config in YAML with type validation
+### Data Models  
+- Inherit from `QuantEstateDataObject`
+- Frozen models with enum value serialization
+- Type-safe enums with `BaseEnum`
 
-### MongoDB Integration
-- **Connection**: Use connection pooling through storage layer
-- **Collections**: Follow naming convention `{source}_{data_type}` (e.g., `immobiliare_listings`)
-- **Indexes**: Create appropriate indexes for query performance
-- **Deduplication**: Implement based on `ListingId` uniqueness
-
-### Request Handling
-- **Delays**: Configurable request delays to respect rate limits
-- **User Agents**: Rotate user agents for scraping resilience
-- **Error Recovery**: Implement retry logic for transient failures
-- **Validation**: Validate all extracted data before storage
-
-### Development Workflow
-- **Dependencies**: Use `uv` for all package management operations
-- **Testing**: Write tests for each component layer independently. Put tests in `tests/` directory
-- **Documentation**: Update relevant `.md` files when adding features
-- **Logging**: Use structured logging with appropriate levels
+### Development
+- Use `uv` for package management
+- Tests in `tests/` directory (ask about pytest vs unittest)
+- Structured logging with appropriate levels
+- Update documentation when adding features
