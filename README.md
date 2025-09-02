@@ -11,7 +11,8 @@ The architecture aggregates and analyzes real estate data with a focus on identi
 - Selenium-based scrapers for Italian listings (Immobiliare.it) with detailed attributes
 - Typed data models with Pydantic v2 (ListingId, ListingDetails, ListingRecord)
 - Pluggable storage: MongoDB or CSV via a common Storage interface
-- Environment-scoped configuration via .env files
+- Environment-scoped configuration via .env files with Pydantic settings
+- Data transformation mappers for source-specific field mapping
 - Dependency and build management with uv
 
 ---
@@ -96,15 +97,52 @@ uv pip install dist/quant_estate-0.1.0.tar.gz
 
 ---
 
-## Notes
+## Legal Notice & Disclaimers
 
+**IMPORTANT: USER RESPONSIBILITY**
+
+This software is provided for **educational and research purposes only**. By using this software, you agree to:
+
+### Web Scraping Compliance
+- **Check robots.txt** before scraping any website
+- **Respect Terms of Service** of target websites (most prohibit automated access)
+- **Implement appropriate delays** and rate limiting to avoid server overload
+- **Obtain explicit permission** from website owners when required
+- **Comply with applicable laws** in your jurisdiction
+
+### Data Protection & Privacy
+- **GDPR Compliance**: When scraping EU websites, ensure compliance with data protection regulations
+- **Personal Data**: Do not collect, store, or process personal data without proper legal basis
+- **Data Minimization**: Only collect data necessary for your legitimate research purposes
+- **Data Security**: Implement appropriate security measures for any collected data
+
+### Commercial Use Restrictions
+- This software is licensed under BSL-1.1 (Business Source License)
+- **Commercial use is prohibited** until the license converts to Apache 2.0 in 2028
+- For commercial licensing before 2028, contact the repository owner
+
+### Disclaimer of Liability
+- **No Warranty**: This software is provided "as is" without any warranties
+- **User Liability**: Users are solely responsible for ensuring legal compliance
+- **Indemnification**: Users agree to indemnify the authors against any legal claims
+- **Jurisdictional Compliance**: Users must comply with all applicable local, national, and international laws
+
+**The authors assume no responsibility for misuse of this software or any legal consequences arising from its use.**
+
+---
+
+## Technical Notes
+
+- Uses undetected-chromedriver to avoid detection during scraping
 - Respect target sites: add realistic delays and avoid aggressive scraping
 - Rotate user agents if blocked and check robots.txt
+- Configuration files use environment-specific naming (e.g., `storage.dev.env`)
+- Always verify robots.txt compliance before running scrapers
 
 ---
 
 ## License
 
-BSL 1.1 License. See `LICENSE` for details.
+BSL-1.0 License. See `LICENSE` for details.
 
 ---
